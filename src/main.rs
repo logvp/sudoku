@@ -151,6 +151,42 @@ enum Action {
     Set { digit: Digit, x: usize, y: usize },
 }
 
+trait Solver {
+    fn make_move(&self, state: &GameState) -> Action;
+}
+
+struct HumanSolver;
+impl Solver for HumanSolver {
+    fn make_move(&self, state: &GameState) -> Action {
+        let mut buf = String::new();
+        loop {
+            println!("Board:");
+            state.board.print();
+
+            println!("Enter your move");
+            println!("x y digit");
+            buf.clear();
+            std::io::stdin().read_line(&mut buf).unwrap();
+
+            let nums: Result<Vec<usize>, ParseIntError> =
+                buf.split_whitespace().map(str::parse::<usize>).collect();
+            let Ok(nums) = nums else {
+                println!("Could not parse input");
+                continue;
+            };
+            if nums.len() != 3 {
+                println!("Invalid number of entries");
+                continue;
+            }
+            let x = nums[0];
+            let y = nums[1];
+            let digit = Digit::try_from(nums[2]).unwrap();
+
+            break Action::Set { digit, x, y };
+        }
+    }
+}
+
 struct GameState {
     board: Board,
     rules: Vec<Box<dyn SudokuRule>>,
@@ -195,30 +231,13 @@ fn main() {
     rules.push(Box::new(SudokuColumn));
     rules.push(Box::new(SudokuBox));
     let mut game = GameState { board, rules };
-    let mut buf = String::new();
+
+    let solver = HumanSolver;
+
     loop {
-        game.board.print();
+        let action = solver.make_move(&game);
 
-        println!("Enter your move");
-        println!("x y digit");
-        buf.clear();
-        std::io::stdin().read_line(&mut buf).unwrap();
-
-        let nums: Result<Vec<usize>, ParseIntError> =
-            buf.split_whitespace().map(str::parse::<usize>).collect();
-        let Ok(nums) = nums else {
-            println!("Could not parse input");
-            continue;
-        };
-        if nums.len() != 3 {
-            println!("Invalid number of entries");
-            continue;
-        }
-        let x = nums[0];
-        let y = nums[1];
-        let digit = Digit::try_from(nums[2]).unwrap();
-
-        let status = game.update(Action::Set { digit, x, y });
+        let status = game.update(action);
         if status.is_err() {
             println!("Invalid move!");
             continue;
