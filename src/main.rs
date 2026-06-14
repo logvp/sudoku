@@ -1,3 +1,4 @@
+use log::{debug, error, info, trace, warn};
 use std::num::ParseIntError;
 
 type Digit = u32;
@@ -211,6 +212,7 @@ impl BacktrackingSolver {
 
     fn solve_impl(&mut self, board: Board, rules: &GameState) -> Option<Board> {
         let Some(check_idx) = board.first_open_index() else {
+            debug!("Board is already solved!");
             return Some(board);
         };
         for digit in 1..=MAX_DIGIT {
@@ -219,6 +221,8 @@ impl BacktrackingSolver {
             if !rules.check_board(&solution) {
                 continue;
             }
+            let (x, y) = solution.xy(check_idx);
+            trace!("Attempting {} at ({},{})", digit, x, y);
             if let Some(solved) = self.solve_impl(solution, rules) {
                 return Some(solved);
             }
@@ -256,23 +260,26 @@ impl GameState {
         match action {
             Action::Set { digit, x, y } => {
                 if self.board.get(x, y).is_some() {
+                    error!("Attempted to set already set spot at ({},{})", x, y);
                     return Err(());
                 }
                 let mut new_board = self.board.clone();
                 new_board.set(x, y, digit);
                 if self.check_board(&new_board) {
                     self.board = new_board;
+                    trace!("Set digit: {} at ({},{})", digit, x, y);
                     return Ok(());
                 } else {
+                    error!("Illegal digit: {} at ({},{})", digit, x, y);
                     return Err(());
                 }
             }
             Action::Abort => {
-                println!("Solver aborted!");
+                info!("Solver aborted!");
                 return Err(());
             }
             Action::AlreadySolved => {
-                println!("Solver reported already solved");
+                info!("Solver reported already solved");
                 return Err(());
             }
         }
@@ -297,8 +304,13 @@ impl GameState {
 }
 
 fn main() {
+    colog::basic_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     let board = Board::default();
     let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
+    // Standard sudoku rules
     rules.push(Box::new(SudokuRow));
     rules.push(Box::new(SudokuColumn));
     rules.push(Box::new(SudokuBox));
