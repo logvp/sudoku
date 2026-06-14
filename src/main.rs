@@ -36,6 +36,15 @@ impl Board {
         Self::WIDTH
     }
 
+    fn first_open_index(&self) -> Option<usize> {
+        for i in 0..self.len() {
+            if let Some(None) = self.board.get(i) {
+                return Some(i);
+            }
+        }
+        None
+    }
+
     fn index(&self, x: usize, y: usize) -> usize {
         y * Self::WIDTH + x
     }
@@ -149,15 +158,17 @@ impl SudokuRule for SudokuBox {
 
 enum Action {
     Set { digit: Digit, x: usize, y: usize },
+    AlreadySolved,
+    Abort,
 }
 
 trait Solver {
-    fn make_move(&self, state: &GameState) -> Action;
+    fn make_move(&mut self, state: &GameState) -> Action;
 }
 
 struct HumanSolver;
 impl Solver for HumanSolver {
-    fn make_move(&self, state: &GameState) -> Action {
+    fn make_move(&mut self, state: &GameState) -> Action {
         let mut buf = String::new();
         loop {
             println!("Board:");
@@ -187,6 +198,55 @@ impl Solver for HumanSolver {
     }
 }
 
+#[derive(Default)]
+struct BacktrackingSolver {
+    solution: Option<Board>,
+}
+impl BacktrackingSolver {
+    fn solve(&mut self, state: &GameState) -> bool {
+        let solution = state.board.clone();
+        self.solution = self.solve_impl(solution, state);
+        self.solution.is_some()
+    }
+
+    fn solve_impl(&mut self, board: Board, rules: &GameState) -> Option<Board> {
+        let Some(check_idx) = board.first_open_index() else {
+            return Some(board);
+        };
+        for digit in 1..=MAX_DIGIT {
+            let mut solution = board.clone();
+            solution.board[check_idx] = Some(digit);
+            if !rules.check_board(&solution) {
+                continue;
+            }
+            if let Some(solved) = self.solve_impl(solution, rules) {
+                return Some(solved);
+            }
+        }
+        return None;
+    }
+}
+impl Solver for BacktrackingSolver {
+    fn make_move(&mut self, state: &GameState) -> Action {
+        if self.solution.is_none() {
+            if !self.solve(state) {
+                println!("Board is unsolvable!");
+                return Action::Abort;
+            }
+        }
+        let solution = self.solution.as_ref().unwrap();
+        let Some(index) = state.board.first_open_index() else {
+            return Action::AlreadySolved;
+        };
+        let (x, y) = state.board.xy(index);
+        Action::Set {
+            digit: solution.board[index].unwrap(),
+            x,
+            y,
+        }
+    }
+}
+
 struct GameState {
     board: Board,
     rules: Vec<Box<dyn SudokuRule>>,
@@ -198,21 +258,33 @@ impl GameState {
                 if self.board.get(x, y).is_some() {
                     return Err(());
                 }
-                let old_board = self.board.clone();
-                self.board.set(x, y, digit);
-                if self.check() {
+                let mut new_board = self.board.clone();
+                new_board.set(x, y, digit);
+                if self.check_board(&new_board) {
+                    self.board = new_board;
                     return Ok(());
                 } else {
-                    self.board = old_board;
                     return Err(());
                 }
+            }
+            Action::Abort => {
+                println!("Solver aborted!");
+                return Err(());
+            }
+            Action::AlreadySolved => {
+                println!("Solver reported already solved");
+                return Err(());
             }
         }
     }
 
     fn check(&self) -> bool {
+        self.check_board(&self.board)
+    }
+
+    fn check_board(&self, board: &Board) -> bool {
         for rule in &self.rules {
-            if !rule.check(&self.board) {
+            if !rule.check(board) {
                 return false;
             }
         }
@@ -232,7 +304,7 @@ fn main() {
     rules.push(Box::new(SudokuBox));
     let mut game = GameState { board, rules };
 
-    let solver = HumanSolver;
+    let mut solver = BacktrackingSolver::default();
 
     loop {
         let action = solver.make_move(&game);
@@ -247,6 +319,7 @@ fn main() {
 
         if game.solved() {
             println!("Solved!");
+            game.board.print();
             break;
         }
     }
