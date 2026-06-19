@@ -19,13 +19,13 @@ impl Board {
     const HEIGHT: usize = 9;
     const WIDTH: usize = 9;
 
-    fn make(board: [Digit; Self::HEIGHT * Self::WIDTH]) -> Self {
+    pub fn make(board: [Digit; Self::HEIGHT * Self::WIDTH]) -> Self {
         Self {
             board: board.map(|d| (d != 0).then_some(d)),
         }
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.board.len()
     }
 
@@ -46,19 +46,19 @@ impl Board {
         None
     }
 
-    fn index(&self, x: usize, y: usize) -> usize {
+    pub fn index(&self, x: usize, y: usize) -> usize {
         y * Self::WIDTH + x
     }
 
-    fn xy(&self, index: usize) -> (usize, usize) {
+    pub fn xy(&self, index: usize) -> (usize, usize) {
         (index % Self::WIDTH, index / Self::WIDTH)
     }
 
-    fn get(&self, x: usize, y: usize) -> Option<Digit> {
+    pub fn get(&self, x: usize, y: usize) -> Option<Digit> {
         self.board[self.index(x, y)]
     }
 
-    fn set(&mut self, x: usize, y: usize, digit: Digit) {
+    pub fn set(&mut self, x: usize, y: usize, digit: Digit) {
         self.board[self.index(x, y)] = Some(digit)
     }
 
@@ -230,7 +230,7 @@ impl BacktrackingSolver {
         return None;
     }
 
-    fn count_solutions(&self, state: &GameState) -> usize {
+    pub fn count_solutions(&self, state: &GameState) -> usize {
         let solution = state.board.clone();
         self.count_solutions_impl(solution, state)
     }
@@ -255,7 +255,7 @@ impl Solver for BacktrackingSolver {
     fn make_move(&mut self, state: &GameState) -> Action {
         if self.solution.is_none() {
             if !self.solve(state) {
-                println!("Board is unsolvable!");
+                error!("Board is unsolvable!");
                 return Action::Abort;
             }
         }
