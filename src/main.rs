@@ -229,6 +229,27 @@ impl BacktrackingSolver {
         }
         return None;
     }
+
+    fn count_solutions(&self, state: &GameState) -> usize {
+        let solution = state.board.clone();
+        self.count_solutions_impl(solution, state)
+    }
+
+    fn count_solutions_impl(&self, board: Board, rules: &GameState) -> usize {
+        let Some(check_idx) = board.first_open_index() else {
+            return 1;
+        };
+        let mut count = 0;
+        for digit in 1..=MAX_DIGIT {
+            let mut solution = board.clone();
+            solution.board[check_idx] = Some(digit);
+            if !rules.check_board(&solution) {
+                continue;
+            }
+            count += self.count_solutions_impl(solution, rules);
+        }
+        return count;
+    }
 }
 impl Solver for BacktrackingSolver {
     fn make_move(&mut self, state: &GameState) -> Action {
@@ -528,5 +549,29 @@ mod tests {
     fn test_backtracking_solver() {
         let solver = BacktrackingSolver::default();
         test_solver_harness(solver);
+    }
+
+    #[test]
+    fn test_count_solutions() {
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 2, 0, 9, 0, 0, 0,
+            9, 7, 6, 0, 0, 0, 2, 0, 5,
+            0, 0, 5, 6, 7, 0, 1, 0, 8,
+            0, 8, 0, 9, 0, 0, 0, 0, 7,
+            7, 0, 0, 4, 3, 8, 0, 0, 2,
+            6, 0, 0, 0, 0, 7, 0, 8, 0,
+            5, 0, 8, 0, 1, 2, 3, 0, 0,
+            1, 0, 2, 0, 0, 0, 5, 7, 9,
+            0, 0, 0, 5, 0, 3, 0, 0, 0,
+        ]);
+        let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
+        // Standard sudoku rules
+        rules.push(Box::new(SudokuRow));
+        rules.push(Box::new(SudokuColumn));
+        rules.push(Box::new(SudokuBox));
+        let game = GameState { board, rules };
+        let solver = BacktrackingSolver::default();
+        assert_eq!(solver.count_solutions(&game), 1);
     }
 }
