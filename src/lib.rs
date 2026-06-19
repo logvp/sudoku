@@ -95,6 +95,15 @@ pub trait SudokuRule {
 
 pub struct SudokuRow;
 impl SudokuRule for SudokuRow {
+    fn check(&self, board: &Board) -> bool {
+        for i in 0..board.height() {
+            if !self.check_one(board, board.index(0, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     fn check_one(&self, board: &Board, index: usize) -> bool {
         let (_, y) = board.xy(index);
         let mut set = 0u64;
@@ -115,6 +124,15 @@ impl SudokuRule for SudokuRow {
 
 pub struct SudokuColumn;
 impl SudokuRule for SudokuColumn {
+    fn check(&self, board: &Board) -> bool {
+        for i in 0..board.width() {
+            if !self.check_one(board, board.index(i, 0)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     fn check_one(&self, board: &Board, index: usize) -> bool {
         let (x, _) = board.xy(index);
         let mut set = 0u64;
