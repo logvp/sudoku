@@ -153,6 +153,17 @@ impl SudokuRule for SudokuColumn {
 
 pub struct SudokuBox;
 impl SudokuRule for SudokuBox {
+    fn check(&self, board: &Board) -> bool {
+        for i in 0..(board.width() / 3) {
+            for j in 0..(board.height() / 3) {
+                if !self.check_one(board, board.index(i * 3, j * 3)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     fn check_one(&self, board: &Board, index: usize) -> bool {
         let (x, y) = board.xy(index);
         let mut set = 0u64;
