@@ -1,5 +1,4 @@
 use log::{debug, error, info, trace, warn};
-use std::num::ParseIntError;
 
 type Digit = u32;
 const MAX_DIGIT: Digit = 9;
@@ -101,7 +100,7 @@ impl SudokuRule for SudokuRow {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
@@ -130,7 +129,7 @@ impl SudokuRule for SudokuColumn {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
@@ -161,7 +160,7 @@ impl SudokuRule for SudokuBox {
                 }
             }
         }
-        return true;
+        true
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
@@ -209,7 +208,7 @@ impl Solver for HumanSolver {
             buf.clear();
             std::io::stdin().read_line(&mut buf).unwrap();
 
-            let nums: Result<Vec<usize>, ParseIntError> =
+            let nums: Result<Vec<usize>, _> =
                 buf.split_whitespace().map(str::parse::<usize>).collect();
             let Ok(nums) = nums else {
                 println!("Could not parse input");
@@ -256,7 +255,7 @@ impl BacktrackingSolver {
                 return Some(solved);
             }
         }
-        return None;
+        None
     }
 
     pub fn count_solutions(&self, state: &GameState) -> usize {
@@ -277,7 +276,7 @@ impl BacktrackingSolver {
             }
             count += self.count_solutions_impl(solution, rules);
         }
-        return count;
+        count
     }
 }
 impl Solver for BacktrackingSolver {
@@ -322,19 +321,19 @@ impl GameState {
                 if self.check_board_one(&new_board, self.board.index(x, y)) {
                     self.board = new_board;
                     trace!("Set digit: {} at ({},{})", digit, x, y);
-                    return Ok(());
+                    Ok(())
                 } else {
                     error!("Illegal digit: {} at ({},{})", digit, x, y);
-                    return Err(());
+                    Err(())
                 }
             }
             Action::Abort => {
                 info!("Solver aborted!");
-                return Err(());
+                Err(())
             }
             Action::AlreadySolved => {
                 info!("Solver reported already solved");
-                return Err(());
+                Err(())
             }
         }
     }
