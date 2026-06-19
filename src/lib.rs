@@ -247,7 +247,7 @@ impl BacktrackingSolver {
         for digit in 1..=MAX_DIGIT {
             let mut solution = board.clone();
             solution.board[check_idx] = Some(digit);
-            if !rules.check_board(&solution) {
+            if !rules.check_board_one(&solution, check_idx) {
                 continue;
             }
             let (x, y) = solution.xy(check_idx);
@@ -272,7 +272,7 @@ impl BacktrackingSolver {
         for digit in 1..=MAX_DIGIT {
             let mut solution = board.clone();
             solution.board[check_idx] = Some(digit);
-            if !rules.check_board(&solution) {
+            if !rules.check_board_one(&solution, check_idx) {
                 continue;
             }
             count += self.count_solutions_impl(solution, rules);
@@ -319,7 +319,7 @@ impl GameState {
                 }
                 let mut new_board = self.board.clone();
                 new_board.set(x, y, digit);
-                if self.check_board(&new_board) {
+                if self.check_board_one(&new_board, self.board.index(x, y)) {
                     self.board = new_board;
                     trace!("Set digit: {} at ({},{})", digit, x, y);
                     return Ok(());
@@ -346,6 +346,15 @@ impl GameState {
     fn check_board(&self, board: &Board) -> bool {
         for rule in &self.rules {
             if !rule.check(board) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn check_board_one(&self, board: &Board, index: usize) -> bool {
+        for rule in &self.rules {
+            if !rule.check_one(board, index) {
                 return false;
             }
         }
