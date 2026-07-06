@@ -373,12 +373,13 @@ impl Solver for BacktrackingSolver {
     }
 }
 
+type Rules = Vec<Box<dyn SudokuRule>>;
 pub struct GameState {
     board: Board,
-    rules: Vec<Box<dyn SudokuRule>>,
+    rules: Rules,
 }
 impl GameState {
-    pub fn new(board: Board, rules: Vec<Box<dyn SudokuRule>>) -> Self {
+    pub fn new(board: Board, rules: Rules) -> Self {
         Self { board, rules }
     }
 
@@ -600,7 +601,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
+        let mut rules = Rules::new();
         // Standard sudoku rules
         rules.push(Box::new(SudokuRow));
         rules.push(Box::new(SudokuColumn));
@@ -649,7 +650,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
+        let mut rules = Rules::new();
         // Standard sudoku rules
         rules.push(Box::new(SudokuRow));
         rules.push(Box::new(SudokuColumn));
