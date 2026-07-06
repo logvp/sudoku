@@ -138,7 +138,7 @@ impl Board {
         self.board.iter().any(Option::is_none)
     }
 
-    fn print(&self) {
+    pub fn print(&self) {
         for j in 0..self.height() {
             for i in 0..self.width() {
                 if let Some(digit) = self.get(i, j) {
@@ -464,6 +464,32 @@ impl GameState {
 
     pub fn print_board(&self) {
         self.board.print();
+    }
+}
+
+pub fn solve(board: Board) -> Result<Board, ()> {
+    let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
+    // Standard sudoku rules
+    rules.push(Box::new(SudokuRow));
+    rules.push(Box::new(SudokuColumn));
+    rules.push(Box::new(SudokuBox));
+    let mut game = GameState::new(board, rules);
+
+    let mut solver = BacktrackingSolver::default();
+
+    loop {
+        let action = solver.make_move(&game);
+
+        let status = game.update(action);
+        if status.is_err() {
+            panic!("Invalid move!");
+        }
+
+        assert!(game.check());
+
+        if game.solved() {
+            break Ok(game.board);
+        }
     }
 }
 
