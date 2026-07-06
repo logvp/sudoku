@@ -60,6 +60,20 @@ impl Digit {
         Digit::_8,
         Digit::_9,
     ];
+
+    pub fn shift(self) -> Digit {
+        match self {
+            Digit::_1 => Digit::_2,
+            Digit::_2 => Digit::_3,
+            Digit::_3 => Digit::_4,
+            Digit::_4 => Digit::_5,
+            Digit::_5 => Digit::_6,
+            Digit::_6 => Digit::_7,
+            Digit::_7 => Digit::_8,
+            Digit::_8 => Digit::_9,
+            Digit::_9 => Digit::_1,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]

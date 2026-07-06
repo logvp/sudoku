@@ -1,5 +1,6 @@
 use sudoku::{
-    BacktrackingSolver, Board, GameState, Solver, SudokuBox, SudokuColumn, SudokuRow, SudokuRule,
+    BacktrackingSolver, Board, Digit, GameState, Solver, SudokuBox, SudokuColumn, SudokuRow,
+    SudokuRule,
 };
 
 fn main() {
@@ -21,8 +22,8 @@ fn main() {
         let mut this_board = board.clone();
 
         let (x, y) = this_board.xy(i);
-        let digit = this_board.get(x, y).unwrap_or(0);
-        this_board.set(x, y, (digit + 1) % 10);
+        let digit = this_board.get(x, y).unwrap_or(Digit::_9);
+        this_board.set(x, y, digit.shift());
 
         let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
         // Standard sudoku rules
