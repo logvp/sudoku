@@ -1,7 +1,66 @@
+use std::fmt::Display;
+
 use log::{debug, error, info, trace, warn};
 
-type Digit = u32;
-const MAX_DIGIT: Digit = 9;
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[repr(u8)]
+pub enum Digit {
+    _1 = 0,
+    _2,
+    _3,
+    _4,
+    _5,
+    _6,
+    _7,
+    _8,
+    _9,
+}
+impl TryFrom<u32> for Digit {
+    type Error = ();
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Digit::_1),
+            2 => Ok(Digit::_2),
+            3 => Ok(Digit::_3),
+            4 => Ok(Digit::_4),
+            5 => Ok(Digit::_5),
+            6 => Ok(Digit::_6),
+            7 => Ok(Digit::_7),
+            8 => Ok(Digit::_8),
+            9 => Ok(Digit::_9),
+            _ => Err(()),
+        }
+    }
+}
+impl Display for Digit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Digit::_1 => "1",
+            Digit::_2 => "2",
+            Digit::_3 => "3",
+            Digit::_4 => "4",
+            Digit::_5 => "5",
+            Digit::_6 => "6",
+            Digit::_7 => "7",
+            Digit::_8 => "8",
+            Digit::_9 => "9",
+        })
+    }
+}
+impl Digit {
+    pub const DIGITS: [Digit; 9] = [
+        Digit::_1,
+        Digit::_2,
+        Digit::_3,
+        Digit::_4,
+        Digit::_5,
+        Digit::_6,
+        Digit::_7,
+        Digit::_8,
+        Digit::_9,
+    ];
+}
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Board {
@@ -18,9 +77,9 @@ impl Board {
     const HEIGHT: usize = 9;
     const WIDTH: usize = 9;
 
-    pub fn make(board: [Digit; Self::HEIGHT * Self::WIDTH]) -> Self {
+    pub fn make(board: [u32; Self::HEIGHT * Self::WIDTH]) -> Self {
         Self {
-            board: board.map(|d| (d != 0).then_some(d)),
+            board: board.map(Digit::try_from).map(Result::ok),
         }
     }
 
@@ -108,7 +167,7 @@ impl SudokuRule for SudokuRow {
         let mut set = 0u64;
         for i in 0..board.width() {
             let mask = if let Some(digit) = board.get(i, y) {
-                1 << digit
+                1 << digit as u8
             } else {
                 0
             };
@@ -137,7 +196,7 @@ impl SudokuRule for SudokuColumn {
         let mut set = 0u64;
         for j in 0..board.height() {
             let mask = if let Some(digit) = board.get(x, j) {
-                1 << digit
+                1 << digit as u8
             } else {
                 0
             };
@@ -171,7 +230,7 @@ impl SudokuRule for SudokuBox {
         for i in box_start_x..(box_start_x + 3) {
             for j in box_start_y..(box_start_y + 3) {
                 let mask = if let Some(digit) = board.get(i, j) {
-                    1 << digit
+                    1 << digit as u8
                 } else {
                     0
                 };
@@ -220,7 +279,7 @@ impl Solver for HumanSolver {
             }
             let x = nums[0];
             let y = nums[1];
-            let digit = Digit::try_from(nums[2]).unwrap();
+            let digit = Digit::try_from(u32::try_from(nums[2]).unwrap()).unwrap();
 
             break Action::Set { digit, x, y };
         }
@@ -243,7 +302,7 @@ impl BacktrackingSolver {
             debug!("Board is already solved!");
             return Some(board);
         };
-        for digit in 1..=MAX_DIGIT {
+        for digit in Digit::DIGITS {
             let mut solution = board.clone();
             solution.board[check_idx] = Some(digit);
             if !rules.check_board_one(&solution, check_idx) {
@@ -268,7 +327,7 @@ impl BacktrackingSolver {
             return 1;
         };
         let mut count = 0;
-        for digit in 1..=MAX_DIGIT {
+        for digit in Digit::DIGITS {
             let mut solution = board.clone();
             solution.board[check_idx] = Some(digit);
             if !rules.check_board_one(&solution, check_idx) {
