@@ -166,18 +166,8 @@ pub trait SudokuRule {
 }
 
 pub struct SudokuRow;
-impl SudokuRule for SudokuRow {
-    fn check(&self, board: &Board) -> bool {
-        for i in 0..board.height() {
-            if !self.check_one(board, board.index(0, i)) {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn check_one(&self, board: &Board, index: usize) -> bool {
-        let (_, y) = board.xy(index);
+impl SudokuRow {
+    fn check_row(&self, board: &Board, y: usize) -> bool {
         let mut set = 0u64;
         for i in 0..board.width() {
             let mask = if let Some(digit) = board.get(i, y) {
@@ -193,12 +183,10 @@ impl SudokuRule for SudokuRow {
         true
     }
 }
-
-pub struct SudokuColumn;
-impl SudokuRule for SudokuColumn {
+impl SudokuRule for SudokuRow {
     fn check(&self, board: &Board) -> bool {
-        for i in 0..board.width() {
-            if !self.check_one(board, board.index(i, 0)) {
+        for y in 0..board.height() {
+            if !self.check_row(board, y) {
                 return false;
             }
         }
@@ -206,7 +194,21 @@ impl SudokuRule for SudokuColumn {
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
-        let (x, _) = board.xy(index);
+        let (x, y) = board.xy(index);
+        if let Some(digit) = board.get(x, y) {
+            for i in 0..board.width() {
+                if x != i && Some(digit) == board.get(i, y) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
+pub struct SudokuColumn;
+impl SudokuColumn {
+    fn check_column(&self, board: &Board, x: usize) -> bool {
         let mut set = 0u64;
         for j in 0..board.height() {
             let mask = if let Some(digit) = board.get(x, j) {
@@ -219,6 +221,28 @@ impl SudokuRule for SudokuColumn {
             }
             set |= mask;
         }
+        true
+    }
+}
+impl SudokuRule for SudokuColumn {
+    fn check(&self, board: &Board) -> bool {
+        for x in 0..board.width() {
+            if !self.check_column(board, x) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn check_one(&self, board: &Board, index: usize) -> bool {
+        let (x, y) = board.xy(index);
+        if let Some(digit) = board.get(x, y) {
+            for j in 0..board.height() {
+                if y != j && Some(digit) == board.get(x, j) {
+                    return false;
+                }
+            }
+        };
         true
     }
 }
