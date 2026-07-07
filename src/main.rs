@@ -1,17 +1,33 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use log::{error, trace};
 
-use sudoku::Board;
+use sudoku::{Board, HumanSolver, standard_sudoku_rules};
 
 /// Sudoku solver
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Args {
-    /// Input file to solve
-    input: PathBuf,
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    Solve {
+        /// Input file to solve
+        input: PathBuf,
+    },
+    Count {
+        /// Input file to count
+        input: PathBuf,
+    },
+    Play {
+        /// Input file to play
+        input: PathBuf,
+    },
 }
 
 fn read_board<P>(path: P) -> Option<Board>
@@ -70,12 +86,42 @@ fn main() {
     let args = Args::parse();
     trace!("{:?}", args);
 
-    let Some(board) = read_board(&args.input) else {
-        error!("Could not read board from {}", args.input.display());
-        return;
-    };
-
-    let solved = sudoku::solve(board).unwrap();
-    println!("Solved!");
-    solved.print();
+    match args.command {
+        Commands::Count { input } => {
+            let Some(board) = read_board(&input) else {
+                error!("Could not read board from {}", input.display());
+                return;
+            };
+            let count = sudoku::count(board);
+            println!("Board has {} solutions", count);
+        }
+        Commands::Solve { input } => {
+            let Some(board) = read_board(&input) else {
+                error!("Could not read board from {}", input.display());
+                return;
+            };
+            let solved = sudoku::solve(board);
+            if let Ok(solved) = solved {
+                println!("Solved!");
+                solved.print();
+            } else {
+                println!("Board is not solvable")
+            }
+        }
+        Commands::Play { input } => {
+            let Some(board) = read_board(&input) else {
+                error!("Could not read board from {}", input.display());
+                return;
+            };
+            let rules = standard_sudoku_rules();
+            let mut solver = HumanSolver::default();
+            let solved = sudoku::solve_with(board, rules, &mut solver);
+            if let Ok(solved) = solved {
+                println!("Solved!");
+                solved.print();
+            } else {
+                println!("Board is not solvable")
+            }
+        }
+    }
 }

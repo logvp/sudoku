@@ -304,7 +304,8 @@ pub trait Solver {
     fn make_move(&mut self, state: &GameState) -> Action;
 }
 
-struct HumanSolver;
+#[derive(Default)]
+pub struct HumanSolver;
 impl Solver for HumanSolver {
     fn make_move(&mut self, state: &GameState) -> Action {
         let mut buf = String::new();
@@ -509,6 +510,14 @@ pub fn solve(board: Board) -> Result<Board, ()> {
     let mut solver = BacktrackingSolver::default();
     let rules = standard_sudoku_rules();
     solve_with(board, rules, &mut solver)
+}
+
+pub fn count(board: Board) -> usize {
+    let solver = BacktrackingSolver::default();
+    let rules = standard_sudoku_rules();
+    let game = GameState::new(board, rules);
+
+    solver.count_solutions(&game)
 }
 
 #[cfg(test)]
