@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, trace};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(u8)]
@@ -378,11 +378,9 @@ impl BacktrackingSolver {
 }
 impl Solver for BacktrackingSolver {
     fn make_move(&mut self, state: &GameState) -> Action {
-        if self.solution.is_none() {
-            if !self.solve(state) {
-                error!("Board is unsolvable!");
-                return Action::Abort;
-            }
+        if self.solution.is_none() && !self.solve(state) {
+            error!("Board is unsolvable!");
+            return Action::Abort;
         }
         let solution = self.solution.as_ref().unwrap();
         let Some(index) = state.board.first_open_index() else {
