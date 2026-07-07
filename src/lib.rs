@@ -481,15 +481,16 @@ impl GameState {
     }
 }
 
-pub fn solve(board: Board) -> Result<Board, ()> {
+pub fn standard_sudoku_rules() -> Rules {
     let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
-    // Standard sudoku rules
     rules.push(Box::new(SudokuRow));
     rules.push(Box::new(SudokuColumn));
     rules.push(Box::new(SudokuBox));
-    let mut game = GameState::new(board, rules);
+    rules
+}
 
-    let mut solver = BacktrackingSolver::default();
+pub fn solve_with(board: Board, rules: Rules, solver: &mut dyn Solver) -> Result<Board, ()> {
+    let mut game = GameState::new(board, rules);
 
     while !game.solved() {
         let action = solver.make_move(&game);
@@ -502,6 +503,12 @@ pub fn solve(board: Board) -> Result<Board, ()> {
         assert!(game.check());
     }
     Ok(game.board)
+}
+
+pub fn solve(board: Board) -> Result<Board, ()> {
+    let mut solver = BacktrackingSolver::default();
+    let rules = standard_sudoku_rules();
+    solve_with(board, rules, &mut solver)
 }
 
 #[cfg(test)]
@@ -662,11 +669,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let mut rules = Rules::new();
-        // Standard sudoku rules
-        rules.push(Box::new(SudokuRow));
-        rules.push(Box::new(SudokuColumn));
-        rules.push(Box::new(SudokuBox));
+        let rules = standard_sudoku_rules();
         let mut game = GameState { board, rules };
         #[rustfmt::skip]
         let solution: Board = Board::make([
@@ -711,11 +714,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let mut rules = Rules::new();
-        // Standard sudoku rules
-        rules.push(Box::new(SudokuRow));
-        rules.push(Box::new(SudokuColumn));
-        rules.push(Box::new(SudokuBox));
+        let rules = standard_sudoku_rules();
         let game = GameState { board, rules };
         let solver = BacktrackingSolver::default();
         assert_eq!(solver.count_solutions(&game), 1);
