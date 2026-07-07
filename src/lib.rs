@@ -288,6 +288,18 @@ pub enum Action {
     Abort,
 }
 
+pub enum UpdateResult {
+    Ok,
+    IllegalMove,
+    Done,
+    Aborted,
+}
+impl UpdateResult {
+    pub fn is_ok(&self) -> bool {
+        matches!(self, UpdateResult::Ok | UpdateResult::Done)
+    }
+}
+
 pub trait Solver {
     fn make_move(&mut self, state: &GameState) -> Action;
 }
@@ -405,31 +417,35 @@ impl GameState {
         Self { board, rules }
     }
 
-    pub fn update(&mut self, action: Action) -> Result<(), ()> {
+    pub fn update(&mut self, action: Action) -> UpdateResult {
         match action {
             Action::Set { digit, x, y } => {
                 if self.board.get(x, y).is_some() {
                     error!("Attempted to set already set spot at ({},{})", x, y);
-                    return Err(());
+                    return UpdateResult::IllegalMove;
                 }
                 let mut new_board = self.board.clone();
                 new_board.set(x, y, digit);
                 if self.check_board_one(&new_board, self.board.index(x, y)) {
                     self.board = new_board;
                     trace!("Set digit: {} at ({},{})", digit, x, y);
-                    Ok(())
+                    UpdateResult::Ok
                 } else {
                     error!("Illegal digit: {} at ({},{})", digit, x, y);
-                    Err(())
+                    UpdateResult::IllegalMove
                 }
             }
             Action::Abort => {
                 info!("Solver aborted!");
-                Err(())
+                UpdateResult::Aborted
             }
             Action::AlreadySolved => {
+                if !self.solved() {
+                    error!("Solver reported solved but its not!");
+                    return UpdateResult::IllegalMove;
+                }
                 info!("Solver reported already solved");
-                Err(())
+                UpdateResult::Done
             }
         }
     }
@@ -475,20 +491,17 @@ pub fn solve(board: Board) -> Result<Board, ()> {
 
     let mut solver = BacktrackingSolver::default();
 
-    loop {
+    while !game.solved() {
         let action = solver.make_move(&game);
 
         let status = game.update(action);
-        if status.is_err() {
+        if !status.is_ok() {
             panic!("Invalid move!");
         }
 
         assert!(game.check());
-
-        if game.solved() {
-            break Ok(game.board);
-        }
     }
+    Ok(game.board)
 }
 
 #[cfg(test)]

@@ -37,7 +37,7 @@ fn main() {
             let action = solver.make_move(&game);
 
             let status = game.update(action);
-            if status.is_err() {
+            if !status.is_ok() {
                 break;
             }
 
