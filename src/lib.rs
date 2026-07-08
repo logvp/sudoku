@@ -305,7 +305,7 @@ pub trait Solver {
 }
 
 #[derive(Default)]
-pub struct HumanSolver;
+pub struct HumanSolver {}
 impl Solver for HumanSolver {
     fn make_move(&mut self, state: &GameState) -> Action {
         let mut buf = String::new();
@@ -330,7 +330,20 @@ impl Solver for HumanSolver {
             }
             let x = nums[0];
             let y = nums[1];
-            let digit = Digit::try_from(u32::try_from(nums[2]).unwrap()).unwrap();
+            let digit = match u32::try_from(nums[2]) {
+                Ok(ok) => ok,
+                Err(e) => {
+                    println!("Could not parse digit: {}", e);
+                    continue;
+                }
+            };
+            let digit = match Digit::try_from(digit) {
+                Ok(ok) => ok,
+                Err(_) => {
+                    println!("Could not parse digit");
+                    continue;
+                }
+            };
 
             break Action::Set { digit, x, y };
         }
@@ -490,23 +503,40 @@ pub fn standard_sudoku_rules() -> Rules {
     rules
 }
 
-pub fn solve_with(board: Board, rules: Rules, solver: &mut dyn Solver) -> Result<Board, ()> {
+pub enum SolveError {
+    Aborted,
+    Illegal,
+}
+
+pub fn solve_with(
+    board: Board,
+    rules: Rules,
+    solver: &mut dyn Solver,
+) -> Result<Board, SolveError> {
     let mut game = GameState::new(board, rules);
 
     while !game.solved() {
         let action = solver.make_move(&game);
 
         let status = game.update(action);
-        if !status.is_ok() {
-            panic!("Invalid move!");
+        match status {
+            UpdateResult::Done => {
+                assert!(game.solved());
+                break;
+            }
+            UpdateResult::Ok => {
+                assert!(game.check());
+            }
+            UpdateResult::Aborted => {
+                return Err(SolveError::Aborted);
+            }
+            UpdateResult::IllegalMove => return Err(SolveError::Illegal),
         }
-
-        assert!(game.check());
     }
     Ok(game.board)
 }
 
-pub fn solve(board: Board) -> Result<Board, ()> {
+pub fn solve(board: Board) -> Result<Board, SolveError> {
     let mut solver = BacktrackingSolver::default();
     let rules = standard_sudoku_rules();
     solve_with(board, rules, &mut solver)
