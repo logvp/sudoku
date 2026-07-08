@@ -300,6 +300,14 @@ impl UpdateResult {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub enum BoardStatus {
+    Unsolvable,
+    AlreadySolved,
+    OneSolution,
+    MultipleSolutions,
+}
+
 pub trait Solver {
     fn make_move(&mut self, state: &GameState) -> Action;
 }
@@ -381,9 +389,16 @@ impl BacktrackingSolver {
         None
     }
 
-    pub fn count_solutions(&self, state: &GameState) -> usize {
+    pub fn verify_board(&self, state: &GameState) -> BoardStatus {
+        if state.solved() {
+            return BoardStatus::AlreadySolved;
+        }
         let solution = state.board.clone();
-        self.count_solutions_impl(solution, state)
+        match self.count_solutions_impl(solution, state) {
+            0 => BoardStatus::Unsolvable,
+            1 => BoardStatus::OneSolution,
+            _ => BoardStatus::MultipleSolutions,
+        }
     }
 
     fn count_solutions_impl(&self, board: Board, rules: &GameState) -> usize {
@@ -398,6 +413,9 @@ impl BacktrackingSolver {
                 continue;
             }
             count += self.count_solutions_impl(solution, rules);
+            if count > 1 {
+                return count;
+            }
         }
         count
     }
@@ -542,12 +560,12 @@ pub fn solve(board: Board) -> Result<Board, SolveError> {
     solve_with(board, rules, &mut solver)
 }
 
-pub fn count(board: Board) -> usize {
+pub fn verify(board: Board) -> BoardStatus {
     let solver = BacktrackingSolver::default();
     let rules = standard_sudoku_rules();
     let game = GameState::new(board, rules);
 
-    solver.count_solutions(&game)
+    solver.verify_board(&game)
 }
 
 #[cfg(test)]
@@ -740,7 +758,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_solutions() {
+    fn test_verify_board() {
         #[rustfmt::skip]
         let board: Board = Board::make([
             0, 0, 0, 2, 0, 9, 0, 0, 0,
@@ -756,6 +774,6 @@ mod tests {
         let rules = standard_sudoku_rules();
         let game = GameState { board, rules };
         let solver = BacktrackingSolver::default();
-        assert_eq!(solver.count_solutions(&game), 1);
+        assert_eq!(solver.verify_board(&game), BoardStatus::OneSolution);
     }
 }

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use clap::{Parser, Subcommand};
 use log::{error, trace};
 
-use sudoku::{Board, HumanSolver, standard_sudoku_rules};
+use sudoku::{Board, BoardStatus, HumanSolver, standard_sudoku_rules};
 
 /// Sudoku solver
 #[derive(Parser, Debug)]
@@ -20,7 +20,7 @@ enum Commands {
         /// Input file to solve
         input: PathBuf,
     },
-    Count {
+    Check {
         /// Input file to count
         input: PathBuf,
     },
@@ -87,13 +87,17 @@ fn main() {
     trace!("{:?}", args);
 
     match args.command {
-        Commands::Count { input } => {
+        Commands::Check { input } => {
             let Some(board) = read_board(&input) else {
                 error!("Could not read board from {}", input.display());
                 return;
             };
-            let count = sudoku::count(board);
-            println!("Board has {} solutions", count);
+            match sudoku::verify(board) {
+                BoardStatus::AlreadySolved => println!("Board is already solved"),
+                BoardStatus::Unsolvable => println!("Board is unsolvable"),
+                BoardStatus::OneSolution => println!("Board has one solution"),
+                BoardStatus::MultipleSolutions => println!("Board has multiple solutions"),
+            }
         }
         Commands::Solve { input } => {
             let Some(board) = read_board(&input) else {
