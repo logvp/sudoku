@@ -295,7 +295,11 @@ impl BacktrackingSolver {
 
     fn count_solutions_impl(&self, board: Board, rules: &GameState) -> usize {
         let Some(check_idx) = board.first_open_index() else {
-            return 1;
+            if rules.check_board(&board) {
+                return 1;
+            } else {
+                return 0;
+            }
         };
         let mut count = 0;
         for digit in Digit::DIGITS {
@@ -446,14 +450,15 @@ pub fn solve_with(
     Ok(game.board)
 }
 
+type DefaultSolver = BacktrackingSolver;
 pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
-    let mut solver = BacktrackingSolver::default();
+    let mut solver = DefaultSolver::default();
     let rules = rules.unwrap_or_else(standard_sudoku_rules);
     solve_with(board, rules, &mut solver)
 }
 
 pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
-    let solver = BacktrackingSolver::default();
+    let solver = DefaultSolver::default();
     let rules = rules.unwrap_or_else(standard_sudoku_rules);
     let game = GameState::new(board, rules);
 
@@ -522,9 +527,48 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let rules = standard_sudoku_rules();
-        let game = GameState { board, rules };
-        let solver = BacktrackingSolver::default();
-        assert_eq!(solver.verify_board(&game), BoardStatus::OneSolution);
+        assert_eq!(verify(board, None), BoardStatus::OneSolution);
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            8, 4, 1, 2, 5, 9, 7, 3, 6,
+            9, 7, 6, 3, 8, 1, 2, 4, 5,
+            3, 2, 5, 6, 7, 4, 1, 9, 8,
+            2, 8, 3, 9, 6, 5, 4, 1, 7,
+            7, 1, 9, 4, 3, 8, 6, 5, 2,
+            6, 5, 4, 1, 2, 7, 9, 8, 3,
+            5, 9, 8, 7, 1, 2, 3, 6, 4,
+            1, 3, 2, 8, 4, 6, 5, 7, 9,
+            4, 6, 7, 5, 9, 3, 8, 2, 1,
+        ]);
+        assert_eq!(verify(board, None), BoardStatus::AlreadySolved);
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert_eq!(verify(board, None), BoardStatus::MultipleSolutions);
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+        ]);
+        assert_eq!(verify(board, None), BoardStatus::Unsolvable);
     }
 }
