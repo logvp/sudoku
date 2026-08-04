@@ -3,6 +3,8 @@ use std::fmt::Display;
 
 use log::{debug, error, info, trace};
 
+pub use rules::*;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(u8)]
 pub enum Digit {
@@ -119,11 +121,17 @@ impl Board {
         None
     }
 
+    pub fn in_bounds(&self, x: usize, y: usize) -> bool {
+        return x < Self::WIDTH && y < Self::HEIGHT;
+    }
+
     pub fn index(&self, x: usize, y: usize) -> usize {
+        assert!(self.in_bounds(x, y));
         y * Self::WIDTH + x
     }
 
     pub fn xy(&self, index: usize) -> (usize, usize) {
+        assert!(index < self.board.len());
         (index % Self::WIDTH, index / Self::WIDTH)
     }
 
@@ -399,9 +407,9 @@ impl GameState {
 
 pub fn standard_sudoku_rules() -> Rules {
     let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
-    rules.push(Box::new(rules::SudokuRow));
-    rules.push(Box::new(rules::SudokuColumn));
-    rules.push(Box::new(rules::SudokuBox));
+    rules.push(Box::new(SudokuRow));
+    rules.push(Box::new(SudokuColumn));
+    rules.push(Box::new(SudokuBox));
     rules
 }
 
