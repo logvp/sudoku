@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use clap::{Parser, Subcommand};
 use log::{error, trace};
 
-use sudoku::{Board, BoardStatus, HumanSolver, standard_sudoku_rules};
+use sudoku::{Board, BoardStatus, HumanSolver, Rules, standard_sudoku_rules};
 
 /// Sudoku solver
 #[derive(Parser, Debug)]
@@ -12,6 +12,8 @@ use sudoku::{Board, BoardStatus, HumanSolver, standard_sudoku_rules};
 struct Args {
     #[command(subcommand)]
     command: Commands,
+    #[arg(long)]
+    rules_file: Option<PathBuf>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -30,14 +32,7 @@ enum Commands {
     },
 }
 
-fn read_board<P>(path: P) -> Option<Board>
-where
-    P: AsRef<Path>,
-{
-    let sudoku_str = match fs::read_to_string(path) {
-        Ok(ok) => ok,
-        Err(e) => todo!("io error: {}", e),
-    };
+fn parse_board(sudoku_str: &str) -> Option<Board> {
     let parsed_digits = sudoku_str
         .lines()
         .map(|line| {
@@ -45,7 +40,7 @@ where
                 .map(str::parse::<u32>)
                 .collect::<Result<Vec<_>, _>>()
         })
-        .collect::<Result<Vec<_>, _>>();
+        .collect::<Result<Vec<Vec<_>>, _>>();
     let parsed_digits = match parsed_digits {
         Ok(rows) => {
             if rows.len() != 9 {
@@ -77,6 +72,53 @@ where
     Some(Board::make(parsed_digits))
 }
 
+fn read_board<P>(path: P) -> Option<Board>
+where
+    P: AsRef<Path>,
+{
+    let sudoku_str = match fs::read_to_string(path) {
+        Ok(ok) => ok,
+        Err(e) => {
+            error!("IO error: {}", e);
+            return None;
+        }
+    };
+    parse_board(sudoku_str.as_str())
+}
+
+fn parse_rules(rules_str: &str) -> Option<Rules> {
+    let mut rules = Rules::new();
+    for line in rules_str.lines() {
+        let word = line.trim();
+        match word {
+            "standard" | "sudoku" => rules.extend(standard_sudoku_rules()),
+            "box" => rules.push(Box::new(sudoku::SudokuBox)),
+            "row" => rules.push(Box::new(sudoku::SudokuRow)),
+            "col" | "column" => rules.push(Box::new(sudoku::SudokuColumn)),
+            "knight" => rules.push(Box::new(sudoku::KnightsMove)),
+            _ => {
+                error!("Unknown sudoku rule: '{}'", word);
+                return None;
+            }
+        }
+    }
+    Some(rules)
+}
+
+fn read_rules<P>(path: P) -> Option<Rules>
+where
+    P: AsRef<Path>,
+{
+    let rules_str = match fs::read_to_string(path) {
+        Ok(ok) => ok,
+        Err(e) => {
+            error!("IO error: {}", e);
+            return None;
+        }
+    };
+    parse_rules(rules_str.as_str())
+}
+
 fn main() {
     colog::basic_builder()
         .filter_level(log::LevelFilter::Debug)
@@ -86,13 +128,19 @@ fn main() {
     let args = Args::parse();
     trace!("{:?}", args);
 
+    let rules = if let Some(rules_file) = args.rules_file {
+        Some(read_rules(rules_file).expect("Could not read rules file"))
+    } else {
+        None
+    };
+
     match args.command {
         Commands::Check { input } => {
             let Some(board) = read_board(&input) else {
                 error!("Could not read board from {}", input.display());
                 return;
             };
-            match sudoku::verify(board) {
+            match sudoku::verify(board, rules) {
                 BoardStatus::AlreadySolved => println!("Board is already solved"),
                 BoardStatus::Unsolvable => println!("Board is unsolvable"),
                 BoardStatus::OneSolution => println!("Board has one solution"),
@@ -104,7 +152,7 @@ fn main() {
                 error!("Could not read board from {}", input.display());
                 return;
             };
-            let solved = sudoku::solve(board);
+            let solved = sudoku::solve(board, rules);
             if let Ok(solved) = solved {
                 println!("Solved!");
                 solved.print();
@@ -117,7 +165,7 @@ fn main() {
                 error!("Could not read board from {}", input.display());
                 return;
             };
-            let rules = standard_sudoku_rules();
+            let rules = rules.unwrap_or_else(standard_sudoku_rules);
             let mut solver = HumanSolver::default();
             let solved = sudoku::solve_with(board, rules, &mut solver);
             if let Ok(solved) = solved {

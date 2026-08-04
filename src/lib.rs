@@ -331,7 +331,7 @@ impl Solver for BacktrackingSolver {
     }
 }
 
-type Rules = Vec<Box<dyn SudokuRule>>;
+pub type Rules = Vec<Box<dyn SudokuRule>>;
 pub struct GameState {
     board: Board,
     rules: Rules,
@@ -446,15 +446,15 @@ pub fn solve_with(
     Ok(game.board)
 }
 
-pub fn solve(board: Board) -> Result<Board, SolveError> {
+pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
     let mut solver = BacktrackingSolver::default();
-    let rules = standard_sudoku_rules();
+    let rules = rules.unwrap_or_else(standard_sudoku_rules);
     solve_with(board, rules, &mut solver)
 }
 
-pub fn verify(board: Board) -> BoardStatus {
+pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
     let solver = BacktrackingSolver::default();
-    let rules = standard_sudoku_rules();
+    let rules = rules.unwrap_or_else(standard_sudoku_rules);
     let game = GameState::new(board, rules);
 
     solver.verify_board(&game)
