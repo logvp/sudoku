@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
-use log::{error, trace};
+use log::{error, info, trace};
 
 use sudoku::{Board, BoardStatus, HumanSolver, Rules, standard_sudoku_rules};
 
@@ -154,7 +154,7 @@ fn main() {
             };
             let solved = sudoku::solve(board, rules);
             if let Ok(solved) = solved {
-                println!("Solved!");
+                info!("Solved!");
                 solved.print();
             } else {
                 println!("Board is not solvable")
@@ -169,10 +169,10 @@ fn main() {
             let mut solver = HumanSolver::default();
             let solved = sudoku::solve_with(board, rules, &mut solver);
             if let Ok(solved) = solved {
-                println!("Solved!");
+                info!("Solved!");
                 solved.print();
             } else {
-                println!("Board is not solvable")
+                println!("Board was not solved!")
             }
         }
     }
