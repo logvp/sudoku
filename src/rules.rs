@@ -1,0 +1,264 @@
+use super::{Board, SudokuRule};
+
+pub struct SudokuRow;
+impl SudokuRow {
+    fn check_row(&self, board: &Board, y: usize) -> bool {
+        let mut set = 0u64;
+        for i in 0..board.width() {
+            let mask = if let Some(digit) = board.get(i, y) {
+                1 << digit as u8
+            } else {
+                0
+            };
+            if (set & mask) != 0 {
+                return false;
+            }
+            set |= mask;
+        }
+        true
+    }
+}
+impl SudokuRule for SudokuRow {
+    fn check(&self, board: &Board) -> bool {
+        for y in 0..board.height() {
+            if !self.check_row(board, y) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn check_one(&self, board: &Board, index: usize) -> bool {
+        let (x, y) = board.xy(index);
+        if let Some(digit) = board.get(x, y) {
+            for i in 0..board.width() {
+                if x != i && Some(digit) == board.get(i, y) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
+pub struct SudokuColumn;
+impl SudokuColumn {
+    fn check_column(&self, board: &Board, x: usize) -> bool {
+        let mut set = 0u64;
+        for j in 0..board.height() {
+            let mask = if let Some(digit) = board.get(x, j) {
+                1 << digit as u8
+            } else {
+                0
+            };
+            if (set & mask) != 0 {
+                return false;
+            }
+            set |= mask;
+        }
+        true
+    }
+}
+impl SudokuRule for SudokuColumn {
+    fn check(&self, board: &Board) -> bool {
+        for x in 0..board.width() {
+            if !self.check_column(board, x) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn check_one(&self, board: &Board, index: usize) -> bool {
+        let (x, y) = board.xy(index);
+        if let Some(digit) = board.get(x, y) {
+            for j in 0..board.height() {
+                if y != j && Some(digit) == board.get(x, j) {
+                    return false;
+                }
+            }
+        };
+        true
+    }
+}
+
+pub struct SudokuBox;
+impl SudokuRule for SudokuBox {
+    fn check(&self, board: &Board) -> bool {
+        for i in 0..(board.width() / 3) {
+            for j in 0..(board.height() / 3) {
+                if !self.check_one(board, board.index(i * 3, j * 3)) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn check_one(&self, board: &Board, index: usize) -> bool {
+        let (x, y) = board.xy(index);
+        let mut set = 0u64;
+        let box_start_x = x - (x % 3);
+        let box_start_y = y - (y % 3);
+        for i in box_start_x..(box_start_x + 3) {
+            for j in box_start_y..(box_start_y + 3) {
+                let mask = if let Some(digit) = board.get(i, j) {
+                    1 << digit as u8
+                } else {
+                    0
+                };
+                if (set & mask) != 0 {
+                    return false;
+                }
+                set |= mask;
+            }
+        }
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_row_rule() {
+        let row_rule = SudokuRow;
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(row_rule.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+        ]);
+        assert!(row_rule.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 1, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(!row_rule.check(&board));
+    }
+
+    #[test]
+    fn test_column_rule() {
+        let column_rule = SudokuColumn;
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(column_rule.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 1, 1, 1, 1, 1, 1, 1, 1,
+            2, 2, 2, 2, 2, 2, 2, 2, 2,
+            3, 3, 3, 3, 3, 3, 3, 3, 3,
+            4, 4, 4, 4, 4, 4, 4, 4, 4,
+            5, 5, 5, 5, 5, 5, 5, 5, 5,
+            6, 6, 6, 6, 6, 6, 6, 6, 6,
+            7, 7, 7, 7, 7, 7, 7, 7, 7,
+            8, 8, 8, 8, 8, 8, 8, 8, 8,
+            9, 9, 9, 9, 9, 9, 9, 9, 9,
+        ]);
+        assert!(column_rule.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(!column_rule.check(&board));
+    }
+
+    #[test]
+    fn test_box_rule() {
+        let box_rule = SudokuBox;
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(box_rule.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 2, 3, 1, 2, 3, 1, 2, 3,
+            4, 5, 6, 4, 5, 6, 4, 5, 6,
+            7, 8, 9, 7, 8, 9, 7, 8, 9,
+            1, 2, 3, 1, 2, 3, 1, 2, 3,
+            4, 5, 6, 4, 5, 6, 4, 5, 6,
+            7, 8, 9, 7, 8, 9, 7, 8, 9,
+            1, 2, 3, 1, 2, 3, 1, 2, 3,
+            4, 5, 6, 4, 5, 6, 4, 5, 6,
+            7, 8, 9, 7, 8, 9, 7, 8, 9,
+        ]);
+        assert!(box_rule.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 1, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(!box_rule.check(&board));
+    }
+}
