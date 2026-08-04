@@ -505,7 +505,7 @@ impl GameState {
     }
 
     pub fn solved(&self) -> bool {
-        self.check() && !self.board.has_gaps()
+        !self.board.has_gaps() && self.check()
     }
 
     pub fn print_board(&self) {
