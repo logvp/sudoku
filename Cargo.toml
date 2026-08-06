@@ -7,3 +7,6 @@ edition = "2024"
 clap = { version = "4.6.1", features = ["derive"] }
 colog = "1.4.0"
 log = "0.4.32"
+
+[profile.release]
+debug = true
