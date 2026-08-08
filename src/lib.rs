@@ -258,7 +258,7 @@ impl Solver for HumanSolver {
                     continue;
                 }
             };
-            let digit = if let Ok(ok) = Digit::try_from(digit) { ok } else {
+            let Ok(digit) = Digit::try_from(digit) else {
                 println!("Could not parse digit");
                 continue;
             };
@@ -303,15 +303,14 @@ impl BacktrackingSolver {
         if state.solved() {
             return BoardStatus::AlreadySolved;
         }
-        let solution = state.board.clone();
-        match self.count_solutions_impl(solution, state) {
+        match self.count_solutions_impl(&state.board, state) {
             0 => BoardStatus::Unsolvable,
             1 => BoardStatus::OneSolution,
             _ => BoardStatus::MultipleSolutions,
         }
     }
 
-    fn count_solutions_impl(&self, board: Board, rules: &GameState) -> usize {
+    fn count_solutions_impl(&self, board: &Board, rules: &GameState) -> usize {
         let Some(check_idx) = board.first_open_index() else {
             if rules.check_board(&board) {
                 return 1;
@@ -325,7 +324,7 @@ impl BacktrackingSolver {
             if !rules.check_board_one(&solution, check_idx) {
                 continue;
             }
-            count += self.count_solutions_impl(solution, rules);
+            count += self.count_solutions_impl(&solution, rules);
             if count > 1 {
                 return count;
             }
