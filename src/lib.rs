@@ -21,7 +21,7 @@
 
 pub mod optimized;
 mod rules;
-use std::fmt::Display;
+use std::{fmt::Display, iter};
 
 use log::{debug, error, info, trace};
 
@@ -116,10 +116,16 @@ impl Digit {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct DigitSet {
     storage: [bool; 9],
 }
 impl DigitSet {
+    pub fn new() -> Self {
+        Self {
+            storage: Default::default(),
+        }
+    }
     pub fn set(&mut self, digit: Digit) {
         let n: u32 = digit.into();
         self.storage[n as usize - 1] = true;
@@ -136,6 +142,19 @@ impl DigitSet {
         for x in self.storage.iter_mut() {
             *x = !*x;
         }
+    }
+}
+impl IntoIterator for DigitSet {
+    type Item = Digit;
+    type IntoIter = iter::FilterMap<
+        iter::Enumerate<<[bool; 9] as IntoIterator>::IntoIter>,
+        fn((usize, bool)) -> Option<Digit>,
+    >;
+    fn into_iter(self) -> Self::IntoIter {
+        self.storage
+            .into_iter()
+            .enumerate()
+            .filter_map(|(i, v)| v.then_some(Digit::try_from(i as u32 + 1).unwrap()))
     }
 }
 
