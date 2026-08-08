@@ -19,6 +19,7 @@
     clippy::must_use_candidate
 )]
 
+pub mod optimized;
 mod rules;
 use std::fmt::Display;
 
