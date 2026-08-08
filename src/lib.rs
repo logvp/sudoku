@@ -143,7 +143,7 @@ impl Board {
     }
 
     pub fn in_bounds(&self, x: usize, y: usize) -> bool {
-        return x < Self::WIDTH && y < Self::HEIGHT;
+        x < Self::WIDTH && y < Self::HEIGHT
     }
 
     pub fn index(&self, x: usize, y: usize) -> usize {
@@ -258,12 +258,9 @@ impl Solver for HumanSolver {
                     continue;
                 }
             };
-            let digit = match Digit::try_from(digit) {
-                Ok(ok) => ok,
-                Err(_) => {
-                    println!("Could not parse digit");
-                    continue;
-                }
+            let digit = if let Ok(ok) = Digit::try_from(digit) { ok } else {
+                println!("Could not parse digit");
+                continue;
             };
 
             break Action::Set { digit, x, y };
@@ -318,9 +315,8 @@ impl BacktrackingSolver {
         let Some(check_idx) = board.first_open_index() else {
             if rules.check_board(&board) {
                 return 1;
-            } else {
-                return 0;
             }
+            return 0;
         };
         let mut count = 0;
         for digit in Digit::DIGITS {

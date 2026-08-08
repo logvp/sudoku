@@ -128,11 +128,7 @@ fn main() {
     let args = Args::parse();
     trace!("{:?}", args);
 
-    let rules = if let Some(rules_file) = args.rules_file {
-        Some(read_rules(rules_file).expect("Could not read rules file"))
-    } else {
-        None
-    };
+    let rules = args.rules_file.map(|rules_file| read_rules(rules_file).expect("Could not read rules file"));
 
     match args.command {
         Commands::Check { input } => {
