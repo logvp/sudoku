@@ -1,5 +1,18 @@
 use super::{Board, SudokuRule};
 
+pub struct StandardSudokuRules;
+impl SudokuRule for StandardSudokuRules {
+    fn check(&self, board: &Board) -> bool {
+        SudokuRow {}.check(board) && SudokuColumn {}.check(board) && SudokuBox {}.check(board)
+    }
+
+    fn check_one(&self, board: &Board, index: usize) -> bool {
+        SudokuRow {}.check_one(board, index)
+            && SudokuColumn {}.check_one(board, index)
+            && SudokuBox {}.check_one(board, index)
+    }
+}
+
 pub struct SudokuRow;
 impl SudokuRow {
     fn check_row(&self, board: &Board, y: usize) -> bool {

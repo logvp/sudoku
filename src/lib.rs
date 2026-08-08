@@ -427,9 +427,7 @@ impl GameState {
 
 pub fn standard_sudoku_rules() -> Rules {
     let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
-    rules.push(Box::new(SudokuRow));
-    rules.push(Box::new(SudokuColumn));
-    rules.push(Box::new(SudokuBox));
+    rules.push(Box::new(StandardSudokuRules));
     rules
 }
 
