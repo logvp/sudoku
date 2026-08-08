@@ -1,4 +1,5 @@
 import argparse
+import shlex
 import random
 import subprocess
 import sys
@@ -39,10 +40,12 @@ def checkout(rev: str) -> bool:
     return ret == 0
 
 
-def build(release=True) -> bool:
+def build(release=True, build_args: Optional[str] = None) -> bool:
     cmd = ["cargo", "build"]
     if release:
         cmd.append("--release")
+    if build_args:
+        cmd.extend(shlex.split(build_args))
     ret = run(cmd)
     return ret == 0
 
@@ -79,10 +82,13 @@ if __name__ == "__main__":
         "--args", default=None, help="arguments to pass for the benchmark"
     )
     parser.add_argument(
+        "--build-args", default=None, help="arguments to pass to cargo build"
+    )
+    parser.add_argument(
         "--artifact",
         type=Path,
         default=Path("./target/release/sudoku.exe"),
-        help="The binary produced by cargo build to benchmark",
+        help="the binary produced by cargo build to benchmark",
     )
     parser.add_argument("-w", "--warmup", type=int)
     parser.add_argument("-m", "--min-runs", type=int)
@@ -105,13 +111,13 @@ if __name__ == "__main__":
     try:
         print(f"Checking out {rev_a}")
         assert checkout(rev_a)
-        assert build()
+        assert build(build_args=args.build_args)
         artifact_a = move_artifact(build_artifact, "rev_a.exe")
         print("Built rev_a!")
 
         print(f"Checking out {rev_b}")
         assert checkout(rev_b)
-        assert build()
+        assert build(build_args=args.build_args)
         artifact_b = move_artifact(build_artifact, "rev_b.exe")
         print("Built rev_b!")
 
