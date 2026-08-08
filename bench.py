@@ -48,13 +48,23 @@ def build(release=True) -> bool:
 
 
 def move_artifact(old: Path, new: str) -> Path:
-    return old.rename(new)
+    return old.replace(new)
 
 
-def benchmark(a: Path, b: Path, args: Optional[str]):
+def benchmark(
+    a: Path,
+    b: Path,
+    args: Optional[str],
+    warmup: Optional[int],
+    min_runs: Optional[int],
+):
     a_cmd = str(a) if args is None else " ".join((str(a), args))
     b_cmd = str(b) if args is None else " ".join((str(b), args))
     cmd = ["hyperfine", a_cmd, b_cmd]
+    if warmup:
+        cmd += ["--warmup", f"{warmup}"]
+    if min_runs:
+        cmd += ["--min-runs", f"{min_runs}"]
     print(cmd)
     run(cmd)
 
@@ -74,6 +84,8 @@ if __name__ == "__main__":
         default=Path("./target/release/sudoku.exe"),
         help="The binary produced by cargo build to benchmark",
     )
+    parser.add_argument("-w", "--warmup", type=int)
+    parser.add_argument("-m", "--min-runs", type=int)
     args = parser.parse_args()
 
     if tree_is_dirty():
@@ -102,7 +114,13 @@ if __name__ == "__main__":
         artifact_b = move_artifact(build_artifact, "rev_b.exe")
         print("Built rev_b!")
 
-        benchmark(artifact_a, artifact_b, args.args)
+        benchmark(
+            artifact_a,
+            artifact_b,
+            args.args,
+            warmup=args.warmup,
+            min_runs=args.min_runs,
+        )
 
     finally:
         print(f"Returning to previous HEAD ({prior_state})")
