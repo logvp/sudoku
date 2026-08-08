@@ -1,5 +1,5 @@
 import argparse
-import shlex
+import random
 import subprocess
 import sys
 from pathlib import Path
@@ -86,6 +86,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-w", "--warmup", type=int)
     parser.add_argument("-m", "--min-runs", type=int)
+    parser.add_argument("--repeat", default=1, type=int)
     args = parser.parse_args()
 
     if tree_is_dirty():
@@ -114,13 +115,23 @@ if __name__ == "__main__":
         artifact_b = move_artifact(build_artifact, "rev_b.exe")
         print("Built rev_b!")
 
-        benchmark(
-            artifact_a,
-            artifact_b,
-            args.args,
-            warmup=args.warmup,
-            min_runs=args.min_runs,
-        )
+        for i in range(args.repeat):
+            if random.random() > 0.5:
+                benchmark(
+                    artifact_a,
+                    artifact_b,
+                    args.args,
+                    warmup=args.warmup,
+                    min_runs=args.min_runs,
+                )
+            else:
+                benchmark(
+                    artifact_b,
+                    artifact_a,
+                    args.args,
+                    warmup=args.warmup,
+                    min_runs=args.min_runs,
+                )
 
     finally:
         print(f"Returning to previous HEAD ({prior_state})")
