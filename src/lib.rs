@@ -165,6 +165,10 @@ impl Board {
         self.board[self.index(x, y)] = Some(digit)
     }
 
+    pub fn reset(&mut self, x: usize, y: usize) {
+        self.board[self.index(x, y)] = None
+    }
+
     fn has_gaps(&self) -> bool {
         self.board.iter().any(Option::is_none)
     }

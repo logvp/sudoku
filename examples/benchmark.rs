@@ -15,16 +15,21 @@ fn main() {
     ]);
 
     let mut solvable = 0;
-    for digit in Digit::DIGITS {
-        for i in 0..board.len() {
-            let mut this_board = board.clone();
+    for j in 0..board.len() {
+        let mut holed_board = board.clone();
+        let (x, y) = holed_board.xy(j);
+        holed_board.reset(x, y);
+        for digit in Digit::DIGITS {
+            for i in 0..holed_board.len() {
+                let mut this_board = holed_board.clone();
 
-            let (x, y) = this_board.xy(i);
-            let digit = this_board.get(x, y).unwrap_or(digit);
-            this_board.set(x, y, digit.shift());
+                let (x, y) = this_board.xy(i);
+                let digit = this_board.get(x, y).unwrap_or(digit);
+                this_board.set(x, y, digit.shift());
 
-            if let Some(_board) = solve_standard(this_board) {
-                solvable += 1;
+                if let Some(_board) = solve_standard(this_board) {
+                    solvable += 1;
+                }
             }
         }
     }
