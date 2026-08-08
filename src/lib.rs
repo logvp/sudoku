@@ -58,6 +58,21 @@ impl TryFrom<u32> for Digit {
         }
     }
 }
+impl Into<u32> for Digit {
+    fn into(self) -> u32 {
+        match self {
+            Digit::_1 => 1,
+            Digit::_2 => 2,
+            Digit::_3 => 3,
+            Digit::_4 => 4,
+            Digit::_5 => 5,
+            Digit::_6 => 6,
+            Digit::_7 => 7,
+            Digit::_8 => 8,
+            Digit::_9 => 9,
+        }
+    }
+}
 impl Display for Digit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
@@ -97,6 +112,29 @@ impl Digit {
             Digit::_7 => Digit::_8,
             Digit::_8 => Digit::_9,
             Digit::_9 => Digit::_1,
+        }
+    }
+}
+
+pub struct DigitSet {
+    storage: [bool; 9],
+}
+impl DigitSet {
+    pub fn set(&mut self, digit: Digit) {
+        let n: u32 = digit.into();
+        self.storage[n as usize - 1] = true;
+    }
+    pub fn clear(&mut self, digit: Digit) {
+        let n: u32 = digit.into();
+        self.storage[n as usize - 1] = false;
+    }
+    pub fn get(&self, digit: Digit) -> bool {
+        let n: u32 = digit.into();
+        self.storage[n as usize - 1]
+    }
+    pub fn invert(&mut self) {
+        for x in self.storage.iter_mut() {
+            *x = !*x;
         }
     }
 }
