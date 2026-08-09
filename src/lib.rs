@@ -114,6 +114,20 @@ impl Digit {
             Digit::_9 => Digit::_1,
         }
     }
+
+    pub fn next(self) -> Option<Digit> {
+        match self {
+            Digit::_1 => Some(Digit::_2),
+            Digit::_2 => Some(Digit::_3),
+            Digit::_3 => Some(Digit::_4),
+            Digit::_4 => Some(Digit::_5),
+            Digit::_5 => Some(Digit::_6),
+            Digit::_6 => Some(Digit::_7),
+            Digit::_7 => Some(Digit::_8),
+            Digit::_8 => Some(Digit::_9),
+            Digit::_9 => None,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
