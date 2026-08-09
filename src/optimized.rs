@@ -108,10 +108,12 @@ pub fn verify_standard(mut board: Board) -> BoardStatus {
         }
     }
 
-    if num_solutions == 1 {
+    if num_solutions == 0 {
+        BoardStatus::Unsolvable
+    } else if num_solutions == 1 {
         BoardStatus::OneSolution
     } else {
-        BoardStatus::Unsolvable
+        unreachable!()
     }
 }
 
