@@ -127,6 +127,36 @@ pub fn verify_standard(mut board: Board) -> BoardStatus {
     }
 }
 
+pub fn is_minimal_standard(board: Board) -> bool {
+    match verify_standard(board.clone()) {
+        BoardStatus::AlreadySolved | BoardStatus::OneSolution => (), // ok
+        BoardStatus::MultipleSolutions => {
+            error!("Starting board is already ambiguous");
+            return false;
+        }
+        BoardStatus::Unsolvable => {
+            error!("Starting board is not solvable");
+            return false;
+        }
+    }
+
+    let set_cells = board
+        .board
+        .iter()
+        .enumerate()
+        .filter_map(|(i, cell)| cell.is_some().then_some(i));
+
+    for index in set_cells {
+        let mut this_board = board.clone();
+        this_board.board[index] = None;
+        if verify_standard(this_board) == BoardStatus::OneSolution {
+            return false;
+        }
+    }
+
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

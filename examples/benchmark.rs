@@ -1,6 +1,6 @@
 use sudoku::{
     Board, BoardStatus, Digit,
-    optimized::{solve_standard, verify_standard},
+    optimized::{is_minimal_standard, solve_standard, verify_standard},
 };
 
 fn main() {
@@ -17,8 +17,9 @@ fn main() {
         0, 0, 0, 5, 0, 3, 0, 0, 0,
     ]);
 
-    let mut solvable = 0;
-    let mut valid = 0;
+    let mut solvable: usize = 0;
+    let mut valid: usize = 0;
+    let mut minimal: usize = 0;
     for j in 0..board.len() {
         let mut holed_board = board.clone();
         let (x, y) = holed_board.xy(j);
@@ -35,8 +36,12 @@ fn main() {
                     solvable += 1;
                 }
 
-                if verify_standard(this_board) == BoardStatus::OneSolution {
+                if verify_standard(this_board.clone()) == BoardStatus::OneSolution {
                     valid += 1;
+                }
+
+                if is_minimal_standard(this_board.clone()) {
+                    minimal += 1;
                 }
             }
         }
@@ -44,4 +49,5 @@ fn main() {
     println!("Done!");
     println!("Solvable: {}", solvable);
     println!("Valid:    {}", valid);
+    println!("Minimal:  {}", minimal);
 }
