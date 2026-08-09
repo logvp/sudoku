@@ -1,19 +1,19 @@
+use crate::DigitSet;
+
 use super::{Board, SudokuRule};
 
 pub struct SudokuRow;
 impl SudokuRow {
     fn check_row(&self, board: &Board, y: usize) -> bool {
-        let mut set = 0u64;
+        let mut set = DigitSet::new();
         for i in 0..board.width() {
-            let mask = if let Some(digit) = board.get(i, y) {
-                1 << digit as u8
-            } else {
-                0
+            if let Some(digit) = board.get(i, y) {
+                if set.get(digit) {
+                    return false;
+                } else {
+                    set.set(digit);
+                }
             };
-            if (set & mask) != 0 {
-                return false;
-            }
-            set |= mask;
         }
         true
     }
@@ -44,17 +44,15 @@ impl SudokuRule for SudokuRow {
 pub struct SudokuColumn;
 impl SudokuColumn {
     fn check_column(&self, board: &Board, x: usize) -> bool {
-        let mut set = 0u64;
+        let mut set = DigitSet::new();
         for j in 0..board.height() {
-            let mask = if let Some(digit) = board.get(x, j) {
-                1 << digit as u8
-            } else {
-                0
+            if let Some(digit) = board.get(x, j) {
+                if set.get(digit) {
+                    return false;
+                } else {
+                    set.set(digit);
+                }
             };
-            if (set & mask) != 0 {
-                return false;
-            }
-            set |= mask;
         }
         true
     }
@@ -97,20 +95,18 @@ impl SudokuRule for SudokuBox {
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
         let (x, y) = board.xy(index);
-        let mut set = 0u64;
+        let mut set = DigitSet::new();
         let box_start_x = x - (x % 3);
         let box_start_y = y - (y % 3);
         for i in box_start_x..(box_start_x + 3) {
             for j in box_start_y..(box_start_y + 3) {
-                let mask = if let Some(digit) = board.get(i, j) {
-                    1 << digit as u8
-                } else {
-                    0
+                if let Some(digit) = board.get(i, j) {
+                    if set.get(digit) {
+                        return false;
+                    } else {
+                        set.set(digit);
+                    }
                 };
-                if (set & mask) != 0 {
-                    return false;
-                }
-                set |= mask;
             }
         }
         true
