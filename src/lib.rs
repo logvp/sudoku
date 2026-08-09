@@ -132,7 +132,7 @@ impl Digit {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct DigitSet {
-    storage: usize,
+    storage: [bool; 10],
 }
 impl DigitSet {
     pub fn new() -> Self {
@@ -141,16 +141,18 @@ impl DigitSet {
         }
     }
     pub fn set(&mut self, digit: Digit) {
-        self.storage |= 1 << (digit as usize);
+        self.storage[digit as usize] = true;
     }
     pub fn clear(&mut self, digit: Digit) {
-        self.storage &= 1 << !(digit as usize);
+        self.storage[digit as usize] = false;
     }
     pub fn get(&self, digit: Digit) -> bool {
-        self.storage & (1 << (digit as usize)) != 0
+        self.storage[digit as usize]
     }
     pub fn invert(&mut self) {
-        self.storage = !self.storage;
+        for x in self.storage.iter_mut() {
+            *x = !*x;
+        }
     }
 }
 
