@@ -21,7 +21,7 @@
 
 pub mod optimized;
 mod rules;
-use std::{fmt::Display, iter};
+use std::fmt::Display;
 
 use log::{debug, error, info, trace};
 
@@ -101,6 +101,9 @@ impl Digit {
         Digit::_9,
     ];
 
+    pub const MAX_DIGIT: Digit = Digit::_9;
+    pub const ARRAY_SIZE: usize = Digit::MAX_DIGIT as usize + 1;
+
     pub fn shift(self) -> Digit {
         match self {
             Digit::_1 => Digit::_2,
@@ -132,7 +135,7 @@ impl Digit {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct DigitSet {
-    storage: [bool; 10],
+    storage: [bool; Digit::ARRAY_SIZE],
 }
 impl DigitSet {
     pub fn new() -> Self {
@@ -140,12 +143,15 @@ impl DigitSet {
             storage: Default::default(),
         }
     }
+    #[inline]
     pub fn set(&mut self, digit: Digit) {
         self.storage[digit as usize] = true;
     }
+    #[inline]
     pub fn clear(&mut self, digit: Digit) {
         self.storage[digit as usize] = false;
     }
+    #[inline]
     pub fn get(&self, digit: Digit) -> bool {
         self.storage[digit as usize]
     }
