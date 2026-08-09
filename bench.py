@@ -1,6 +1,6 @@
 import argparse
-import shlex
 import random
+import shlex
 import subprocess
 import sys
 from pathlib import Path
