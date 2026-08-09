@@ -214,6 +214,15 @@ impl Board {
         None
     }
 
+    fn next_open_index(&self, after: usize) -> Option<usize> {
+        for i in (after + 1)..self.len() {
+            if let Some(None) = self.board.get(i) {
+                return Some(i);
+            }
+        }
+        None
+    }
+
     pub fn in_bounds(&self, x: usize, y: usize) -> bool {
         x < Self::WIDTH && y < Self::HEIGHT
     }

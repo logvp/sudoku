@@ -25,7 +25,7 @@ pub fn solve_standard(mut board: Board) -> Option<Board> {
     } else {
         debug!("Board is already solved!");
         return Some(board);
-    };
+    }
 
     let mut must_backtrack = false;
     while !stack.is_empty() {
@@ -35,7 +35,7 @@ pub fn solve_standard(mut board: Board) -> Option<Board> {
             .copied()
             .expect("unreachable because stack is not empty");
         if !must_backtrack && check_board_one(&board, check_idx) {
-            let Some(next_open) = board.first_open_index() else {
+            let Some(next_open) = board.next_open_index(check_idx) else {
                 return Some(board);
             };
             stack.push(next_open);
