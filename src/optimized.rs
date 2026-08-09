@@ -18,13 +18,18 @@ pub fn solve_standard(mut board: Board) -> Option<Board> {
         return None;
     }
 
+    let num_gaps = board.board.iter().filter(|x| x.is_none()).count();
+    if num_gaps == 0 {
+        debug!("Board is already solved!");
+        return Some(board);
+    }
     let mut stack: Vec<usize> = Vec::new();
+    stack.reserve_exact(num_gaps);
     if let Some(check_idx) = board.first_open_index() {
         stack.push(check_idx);
         board.board[check_idx] = Some(Digit::_1);
     } else {
-        debug!("Board is already solved!");
-        return Some(board);
+        unreachable!()
     }
 
     let mut must_backtrack = false;
@@ -64,13 +69,18 @@ pub fn verify_standard(mut board: Board) -> BoardStatus {
         return BoardStatus::Unsolvable;
     }
 
+    let num_gaps = board.board.iter().filter(|x| x.is_none()).count();
+    if num_gaps == 0 {
+        debug!("Board is already solved!");
+        return BoardStatus::AlreadySolved;
+    }
     let mut stack: Vec<usize> = Vec::new();
+    stack.reserve_exact(num_gaps);
     if let Some(check_idx) = board.first_open_index() {
         stack.push(check_idx);
         board.board[check_idx] = Some(Digit::_1);
     } else {
-        debug!("Board is already solved!");
-        return BoardStatus::AlreadySolved;
+        unreachable!()
     }
 
     let mut num_solutions = 0;
