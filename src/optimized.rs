@@ -157,6 +157,44 @@ pub fn is_minimal_standard(board: Board) -> bool {
     true
 }
 
+// reduce the board but do not search for optimal
+pub fn reduce_standard(mut board: Board) -> Option<Board> {
+    let original_board = board.clone();
+    match verify_standard(board.clone()) {
+        BoardStatus::AlreadySolved | BoardStatus::OneSolution => (), // ok
+        BoardStatus::MultipleSolutions => {
+            error!("Starting board is already ambiguous");
+            return None;
+        }
+        BoardStatus::Unsolvable => {
+            error!("Starting board is not solvable");
+            return None;
+        }
+    }
+
+    let set_cells: Vec<_> = board
+        .board
+        .iter()
+        .enumerate()
+        .filter_map(|(i, cell)| cell.is_some().then_some(i))
+        .collect();
+
+    for index in set_cells {
+        let mut this_board = board.clone();
+        this_board.board[index] = None;
+        if verify_standard(this_board) == BoardStatus::OneSolution {
+            board.board[index] = None;
+        }
+    }
+
+    if original_board == board {
+        // not reducible
+        None
+    } else {
+        Some(board)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -223,5 +261,24 @@ mod tests {
             0, 4, 0, 0, 0, 3, 0, 0, 6,
         ]);
         assert!(is_minimal_standard(board))
+    }
+
+    #[test]
+    fn test_reduce_standard() {
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 2, 0, 9, 0, 0, 0,
+            9, 7, 6, 0, 0, 0, 2, 0, 5,
+            0, 0, 5, 6, 7, 0, 1, 0, 8,
+            0, 8, 0, 9, 0, 0, 0, 0, 7,
+            7, 0, 0, 4, 3, 8, 0, 0, 2,
+            6, 0, 0, 0, 0, 7, 0, 8, 0,
+            5, 0, 8, 0, 1, 2, 3, 0, 0,
+            1, 0, 2, 0, 0, 0, 5, 7, 9,
+            0, 0, 0, 5, 0, 3, 0, 0, 0,
+        ]);
+        let reduced = reduce_standard(board).unwrap();
+        reduced.print();
+        assert!(is_minimal_standard(reduced));
     }
 }
