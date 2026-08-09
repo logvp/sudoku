@@ -30,7 +30,7 @@ pub use rules::*;
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[repr(u8)]
 pub enum Digit {
-    _1 = 0,
+    _1 = 1,
     _2,
     _3,
     _4,
