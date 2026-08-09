@@ -1,4 +1,7 @@
-use sudoku::{Board, Digit, optimized::solve_standard};
+use sudoku::{
+    Board, BoardStatus, Digit,
+    optimized::{solve_standard, verify_standard},
+};
 
 fn main() {
     #[rustfmt::skip]
@@ -15,6 +18,7 @@ fn main() {
     ]);
 
     let mut solvable = 0;
+    let mut valid = 0;
     for j in 0..board.len() {
         let mut holed_board = board.clone();
         let (x, y) = holed_board.xy(j);
@@ -27,12 +31,17 @@ fn main() {
                 let digit = this_board.get(x, y).unwrap_or(digit);
                 this_board.set(x, y, digit.shift());
 
-                if let Some(_board) = solve_standard(this_board) {
+                if let Some(_board) = solve_standard(this_board.clone()) {
                     solvable += 1;
+                }
+
+                if verify_standard(this_board) == BoardStatus::OneSolution {
+                    valid += 1;
                 }
             }
         }
     }
     println!("Done!");
     println!("Solvable: {}", solvable);
+    println!("Valid:    {}", valid);
 }

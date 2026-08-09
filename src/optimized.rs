@@ -1,6 +1,6 @@
 use log::{debug, error};
 
-use crate::{Board, Digit, SudokuBox, SudokuColumn, SudokuRow, SudokuRule};
+use crate::{Board, BoardStatus, Digit, SudokuBox, SudokuColumn, SudokuRow, SudokuRule};
 
 fn check_board_one(board: &Board, index: usize) -> bool {
     SudokuRow {}.check_one(board, index)
@@ -56,6 +56,63 @@ pub fn solve_standard(mut board: Board) -> Option<Board> {
     }
 
     None
+}
+
+pub fn verify_standard(mut board: Board) -> BoardStatus {
+    if !check_board_all(&board) {
+        error!("Board is unsolvable");
+        return BoardStatus::Unsolvable;
+    }
+
+    let mut stack: Vec<usize> = Vec::new();
+    if let Some(check_idx) = board.first_open_index() {
+        stack.push(check_idx);
+        board.board[check_idx] = Some(Digit::_1);
+    } else {
+        debug!("Board is already solved!");
+        return BoardStatus::AlreadySolved;
+    }
+
+    let mut num_solutions = 0;
+    let mut must_backtrack = false;
+    while !stack.is_empty() {
+        // if the guess was valid, continue on to the next open spot
+        let check_idx = stack
+            .last()
+            .copied()
+            .expect("unreachable because stack is not empty");
+        if !must_backtrack && check_board_one(&board, check_idx) {
+            let Some(next_open) = board.next_open_index(check_idx) else {
+                num_solutions += 1;
+                if num_solutions > 1 {
+                    return BoardStatus::MultipleSolutions;
+                } else {
+                    must_backtrack = true;
+                    continue;
+                }
+            };
+            stack.push(next_open);
+            board.board[next_open] = Some(Digit::_1);
+        } else {
+            must_backtrack = false;
+            // if the guess was invalid, increment the guess
+            if let Some(next_digit) = board.board[check_idx].unwrap().next() {
+                board.board[check_idx] = Some(next_digit);
+            }
+            // if we exhausted all guesses for this index, rewind guess and backtrack
+            else {
+                board.board[check_idx] = None;
+                stack.pop().expect("unreachable because stack is not empty");
+                must_backtrack = true;
+            }
+        }
+    }
+
+    if num_solutions == 1 {
+        BoardStatus::OneSolution
+    } else {
+        BoardStatus::Unsolvable
+    }
 }
 
 #[cfg(test)]
