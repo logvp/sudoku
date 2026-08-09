@@ -162,7 +162,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_optimized_solver() {
+    fn test_solve_standard() {
         #[rustfmt::skip]
         let board: Board = Board::make([
             0, 0, 0, 2, 0, 9, 0, 0, 0,
@@ -192,5 +192,36 @@ mod tests {
         let answer = solve_standard(board).unwrap();
         answer.print();
         assert_eq!(answer, solution)
+    }
+
+    #[test]
+    fn test_is_minimal_standard() {
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 2, 0, 9, 0, 0, 0,
+            9, 7, 6, 0, 0, 0, 2, 0, 5,
+            0, 0, 5, 6, 7, 0, 1, 0, 8,
+            0, 8, 0, 9, 0, 0, 0, 0, 7,
+            7, 0, 0, 4, 3, 8, 0, 0, 2,
+            6, 0, 0, 0, 0, 7, 0, 8, 0,
+            5, 0, 8, 0, 1, 2, 3, 0, 0,
+            1, 0, 2, 0, 0, 0, 5, 7, 9,
+            0, 0, 0, 5, 0, 3, 0, 0, 0,
+        ]);
+        assert!(!is_minimal_standard(board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            9, 6, 0, 5, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 1, 0, 0,
+            0, 0, 4, 0, 0, 0, 7, 0, 0,
+            7, 0, 0, 0, 0, 1, 0, 5, 0,
+            0, 0, 5, 0, 7, 0, 2, 0, 0,
+            0, 2, 0, 0, 0, 9, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 7,
+            0, 0, 2, 6, 1, 0, 8, 0, 0,
+            0, 4, 0, 0, 0, 3, 0, 0, 6,
+        ]);
+        assert!(is_minimal_standard(board))
     }
 }
