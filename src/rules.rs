@@ -29,8 +29,8 @@ impl SudokuRule for SudokuRow {
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
-        let (x, y) = board.xy(index);
-        if let Some(digit) = board.get(x, y) {
+        if let Some(digit) = board.board[index] {
+            let (x, y) = board.xy(index);
             for i in 0..board.width() {
                 if x != i && Some(digit) == board.get(i, y) {
                     return false;
@@ -68,8 +68,8 @@ impl SudokuRule for SudokuColumn {
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
-        let (x, y) = board.xy(index);
-        if let Some(digit) = board.get(x, y) {
+        if let Some(digit) = board.board[index] {
+            let (x, y) = board.xy(index);
             for j in 0..board.height() {
                 if y != j && Some(digit) == board.get(x, j) {
                     return false;
