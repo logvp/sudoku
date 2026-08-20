@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use log::{debug, error};
 
 use crate::{Board, BoardStatus, Digit, SudokuBox, SudokuColumn, SudokuRow, SudokuRule};
@@ -63,7 +65,23 @@ pub fn solve_standard(mut board: Board) -> Option<Board> {
     None
 }
 
-pub fn verify_standard(mut board: Board) -> BoardStatus {
+pub fn verify_standard(board: Board) -> BoardStatus {
+    verify_standard_memo(board, &mut VerifyMemo::default())
+}
+
+type VerifyMemo = HashMap<Board, BoardStatus>;
+fn verify_standard_memo(mut board: Board, memo: &mut VerifyMemo) -> BoardStatus {
+    let memoize = |status, mut board: Board, stack: Vec<usize>, memo: &mut VerifyMemo| {
+        memo.insert(board.clone(), status);
+        for idx in stack.iter().rev() {
+            board.board[*idx] = None;
+            memo.insert(board.clone(), status);
+        }
+        return status;
+    };
+    if let Some(result) = memo.get(&board) {
+        return *result;
+    }
     if !check_board_all(&board) {
         error!("Board is unsolvable");
         return BoardStatus::Unsolvable;
@@ -92,17 +110,20 @@ pub fn verify_standard(mut board: Board) -> BoardStatus {
             .copied()
             .expect("unreachable because stack is not empty");
         if !must_backtrack && check_board_one(&board, check_idx) {
-            let Some(next_open) = board.next_open_index(check_idx) else {
+            if let Some(next_open) = board.next_open_index(check_idx) {
+                // guess the next open digit
+                stack.push(next_open);
+                board.board[next_open] = Some(Digit::_1);
+            } else {
+                // solved
                 num_solutions += 1;
                 if num_solutions > 1 {
-                    return BoardStatus::MultipleSolutions;
+                    return memoize(BoardStatus::MultipleSolutions, board, stack, memo);
                 } else {
                     must_backtrack = true;
                     continue;
                 }
-            };
-            stack.push(next_open);
-            board.board[next_open] = Some(Digit::_1);
+            }
         } else {
             must_backtrack = false;
             // if the guess was invalid, increment the guess
@@ -119,9 +140,9 @@ pub fn verify_standard(mut board: Board) -> BoardStatus {
     }
 
     if num_solutions == 0 {
-        BoardStatus::Unsolvable
+        return memoize(BoardStatus::Unsolvable, board, stack, memo);
     } else if num_solutions == 1 {
-        BoardStatus::OneSolution
+        return memoize(BoardStatus::OneSolution, board, stack, memo);
     } else {
         unreachable!()
     }
