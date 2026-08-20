@@ -149,7 +149,8 @@ fn verify_standard_memo(mut board: Board, memo: &mut VerifyMemo) -> BoardStatus 
 }
 
 pub fn is_minimal_standard(board: Board) -> bool {
-    match verify_standard(board.clone()) {
+    let mut memo = VerifyMemo::default();
+    match verify_standard_memo(board.clone(), &mut memo) {
         BoardStatus::AlreadySolved | BoardStatus::OneSolution => (), // ok
         BoardStatus::MultipleSolutions => {
             error!("Starting board is already ambiguous");
@@ -170,7 +171,7 @@ pub fn is_minimal_standard(board: Board) -> bool {
     for index in set_cells {
         let mut this_board = board.clone();
         this_board.board[index] = None;
-        if verify_standard(this_board) == BoardStatus::OneSolution {
+        if verify_standard_memo(this_board, &mut memo) == BoardStatus::OneSolution {
             return false;
         }
     }
@@ -180,8 +181,9 @@ pub fn is_minimal_standard(board: Board) -> bool {
 
 // reduce the board but do not search for optimal
 pub fn reduce_standard(mut board: Board) -> Option<Board> {
+    let mut memo = VerifyMemo::default();
     let original_board = board.clone();
-    match verify_standard(board.clone()) {
+    match verify_standard_memo(board.clone(), &mut memo) {
         BoardStatus::AlreadySolved | BoardStatus::OneSolution => (), // ok
         BoardStatus::MultipleSolutions => {
             error!("Starting board is already ambiguous");
@@ -203,7 +205,7 @@ pub fn reduce_standard(mut board: Board) -> Option<Board> {
     for index in set_cells {
         let mut this_board = board.clone();
         this_board.board[index] = None;
-        if verify_standard(this_board) == BoardStatus::OneSolution {
+        if verify_standard_memo(this_board, &mut memo) == BoardStatus::OneSolution {
             board.board[index] = None;
         }
     }
