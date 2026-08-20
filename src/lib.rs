@@ -27,7 +27,7 @@ use log::{debug, error, info, trace};
 
 pub use rules::*;
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Digit {
     _1 = 1,
@@ -162,7 +162,7 @@ impl DigitSet {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Board {
     board: [Option<Digit>; Self::HEIGHT * Self::WIDTH],
 }
@@ -288,7 +288,7 @@ impl UpdateResult {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BoardStatus {
     Unsolvable,
     AlreadySolved,
