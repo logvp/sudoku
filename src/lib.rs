@@ -419,15 +419,26 @@ impl Solver for BacktrackingSolver {
             return Action::Abort;
         }
         let solution = self.solution.as_ref().unwrap();
-        let Some(index) = state.board.first_open_index() else {
-            return Action::AlreadySolved;
-        };
-        let (x, y) = state.board.xy(index);
-        Action::Set(vec![DigitPos {
-            digit: solution.board[index].unwrap(),
-            x,
-            y,
-        }])
+        let mut placed_digits = Vec::new();
+        for blank_idx in state
+            .board
+            .board
+            .iter()
+            .enumerate()
+            .filter_map(|(i, x)| x.is_none().then_some(i))
+        {
+            let (x, y) = state.board.xy(blank_idx);
+            placed_digits.push(DigitPos {
+                digit: solution.board[blank_idx].unwrap(),
+                x,
+                y,
+            });
+        }
+        if placed_digits.is_empty() {
+            Action::AlreadySolved
+        } else {
+            Action::Set(placed_digits)
+        }
     }
 }
 
