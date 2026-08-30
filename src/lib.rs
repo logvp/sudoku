@@ -270,8 +270,13 @@ pub trait SudokuRule {
     fn check_one(&self, board: &Board, index: usize) -> bool;
 }
 
+pub struct DigitPos {
+    digit: Digit,
+    x: usize,
+    y: usize,
+}
 pub enum Action {
-    Set { digit: Digit, x: usize, y: usize },
+    Set(Vec<DigitPos>),
     AlreadySolved,
     Abort,
 }
@@ -338,7 +343,7 @@ impl Solver for HumanSolver {
                 continue;
             };
 
-            break Action::Set { digit, x, y };
+            break Action::Set(vec![DigitPos { digit, x, y }]);
         }
     }
 }
@@ -418,11 +423,11 @@ impl Solver for BacktrackingSolver {
             return Action::AlreadySolved;
         };
         let (x, y) = state.board.xy(index);
-        Action::Set {
+        Action::Set(vec![DigitPos {
             digit: solution.board[index].unwrap(),
             x,
             y,
-        }
+        }])
     }
 }
 
@@ -438,21 +443,23 @@ impl GameState {
 
     pub fn update(&mut self, action: Action) -> UpdateResult {
         match action {
-            Action::Set { digit, x, y } => {
-                if self.board.get(x, y).is_some() {
-                    error!("Attempted to set already set spot at ({},{})", x, y);
-                    return UpdateResult::IllegalMove;
+            Action::Set(digit_list) => {
+                for DigitPos { digit, x, y } in digit_list {
+                    if self.board.get(x, y).is_some() {
+                        error!("Attempted to set already set spot at ({},{})", x, y);
+                        return UpdateResult::IllegalMove;
+                    }
+                    let mut new_board = self.board.clone();
+                    new_board.set(x, y, digit);
+                    if self.check_board_one(&new_board, self.board.index(x, y)) {
+                        self.board = new_board;
+                        trace!("Set digit: {} at ({},{})", digit, x, y);
+                    } else {
+                        error!("Illegal digit: {} at ({},{})", digit, x, y);
+                        return UpdateResult::IllegalMove;
+                    }
                 }
-                let mut new_board = self.board.clone();
-                new_board.set(x, y, digit);
-                if self.check_board_one(&new_board, self.board.index(x, y)) {
-                    self.board = new_board;
-                    trace!("Set digit: {} at ({},{})", digit, x, y);
-                    UpdateResult::Ok
-                } else {
-                    error!("Illegal digit: {} at ({},{})", digit, x, y);
-                    UpdateResult::IllegalMove
-                }
+                UpdateResult::Ok
             }
             Action::Abort => {
                 info!("Solver aborted!");
