@@ -398,9 +398,7 @@ mod tests {
 
     #[test]
     fn test_thermal() {
-        let thermal = ThermalSudoku {
-            thermometers: vec![vec![0, 1, 2, 3]],
-        };
+        let thermal = ThermalSudoku::new(vec![vec![0, 1, 2, 3]]);
 
         #[rustfmt::skip]
         let board: Board = Board::make([
