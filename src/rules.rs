@@ -152,14 +152,14 @@ impl SudokuRule for KnightsMove {
 pub type Line = Vec<usize>;
 pub struct ThermalSudoku {
     thermometers: Vec<Line>,
-    lookup: HashMap<usize, Vec<usize>>, // board index -> list of thermometers
+    lookup: [Vec<usize>; Board::WIDTH * Board::HEIGHT], // board index -> list of thermometers
 }
 impl ThermalSudoku {
     pub fn new(thermometers: Vec<Line>) -> Self {
-        let mut lookup: HashMap<usize, Vec<usize>> = HashMap::new();
+        let mut lookup = std::array::from_fn(|_| Vec::new());
         for (thermometer_id, thermometer) in thermometers.iter().enumerate() {
             for idx in thermometer.iter() {
-                lookup.entry(*idx).or_default().push(thermometer_id);
+                lookup[*idx].push(thermometer_id);
             }
         }
         Self {
@@ -184,11 +184,9 @@ impl ThermalSudoku {
 }
 impl SudokuRule for ThermalSudoku {
     fn check_one(&self, board: &Board, index: usize) -> bool {
-        if let Some(matches) = self.lookup.get(&index) {
-            for thermometer_id in matches.iter() {
-                if !Self::check_thermometer(&self.thermometers[*thermometer_id], board) {
-                    return false;
-                }
+        for thermometer_id in &self.lookup[index] {
+            if !Self::check_thermometer(&self.thermometers[*thermometer_id], board) {
+                return false;
             }
         }
         true
