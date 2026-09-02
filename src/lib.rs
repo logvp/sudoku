@@ -359,57 +359,120 @@ impl BacktrackingSolver {
         self.solution.is_some()
     }
 
-    fn solve_impl(&mut self, board: Board, rules: &GameState) -> Option<Board> {
-        let Some(check_idx) = board.first_open_index() else {
+    fn solve_impl(&mut self, mut board: Board, rules: &GameState) -> Option<Board> {
+        if !rules.check_board(&board) {
+            error!("Board is unsolvable");
+            return None;
+        }
+
+        let num_gaps = board.board.iter().filter(|x| x.is_none()).count();
+        if num_gaps == 0 {
             debug!("Board is already solved!");
             return Some(board);
-        };
-        for digit in Digit::DIGITS {
-            let mut solution = board.clone();
-            solution.board[check_idx] = Some(digit);
-            if !rules.check_board_one(&solution, check_idx) {
-                continue;
-            }
-            let (x, y) = solution.xy(check_idx);
-            trace!("Attempting {} at ({},{})", digit, x, y);
-            if let Some(solved) = self.solve_impl(solution, rules) {
-                return Some(solved);
+        }
+        let mut stack: Vec<usize> = Vec::new();
+        stack.reserve_exact(num_gaps);
+        if let Some(check_idx) = board.first_open_index() {
+            stack.push(check_idx);
+            board.board[check_idx] = Some(Digit::_1);
+        } else {
+            unreachable!()
+        }
+
+        let mut must_backtrack = false;
+        while !stack.is_empty() {
+            // if the guess was valid, continue on to the next open spot
+            let check_idx = stack
+                .last()
+                .copied()
+                .expect("unreachable because stack is not empty");
+            if !must_backtrack && rules.check_board_one(&board, check_idx) {
+                let Some(next_open) = board.next_open_index(check_idx) else {
+                    return Some(board);
+                };
+                stack.push(next_open);
+                board.board[next_open] = Some(Digit::_1);
+            } else {
+                must_backtrack = false;
+                // if the guess was invalid, increment the guess
+                if let Some(next_digit) = board.board[check_idx].unwrap().next() {
+                    board.board[check_idx] = Some(next_digit);
+                }
+                // if we exhausted all guesses for this index, rewind guess and backtrack
+                else {
+                    board.board[check_idx] = None;
+                    stack.pop().expect("unreachable because stack is not empty");
+                    must_backtrack = true;
+                }
             }
         }
         None
     }
 
     pub fn verify_board(&self, state: &GameState) -> BoardStatus {
-        if state.solved() {
+        if !state.check() {
+            error!("Board is unsolvable");
+            return BoardStatus::Unsolvable;
+        }
+
+        let mut board = state.board.clone();
+
+        let num_gaps = board.board.iter().filter(|x| x.is_none()).count();
+        if num_gaps == 0 {
+            debug!("Board is already solved!");
             return BoardStatus::AlreadySolved;
         }
-        match self.count_solutions_impl(&state.board, state) {
-            0 => BoardStatus::Unsolvable,
-            1 => BoardStatus::OneSolution,
-            _ => BoardStatus::MultipleSolutions,
+        let mut stack: Vec<usize> = Vec::new();
+        stack.reserve_exact(num_gaps);
+        if let Some(check_idx) = board.first_open_index() {
+            stack.push(check_idx);
+            board.board[check_idx] = Some(Digit::_1);
+        } else {
+            unreachable!()
         }
-    }
 
-    fn count_solutions_impl(&self, board: &Board, rules: &GameState) -> usize {
-        let Some(check_idx) = board.first_open_index() else {
-            if rules.check_board(&board) {
-                return 1;
-            }
-            return 0;
-        };
-        let mut count = 0;
-        for digit in Digit::DIGITS {
-            let mut solution = board.clone();
-            solution.board[check_idx] = Some(digit);
-            if !rules.check_board_one(&solution, check_idx) {
-                continue;
-            }
-            count += self.count_solutions_impl(&solution, rules);
-            if count > 1 {
-                return count;
+        let mut num_solutions = 0;
+        let mut must_backtrack = false;
+        while !stack.is_empty() {
+            // if the guess was valid, continue on to the next open spot
+            let check_idx = stack
+                .last()
+                .copied()
+                .expect("unreachable because stack is not empty");
+            if !must_backtrack && state.check_board_one(&board, check_idx) {
+                let Some(next_open) = board.next_open_index(check_idx) else {
+                    num_solutions += 1;
+                    if num_solutions > 1 {
+                        return BoardStatus::MultipleSolutions;
+                    } else {
+                        must_backtrack = true;
+                        continue;
+                    }
+                };
+                stack.push(next_open);
+                board.board[next_open] = Some(Digit::_1);
+            } else {
+                must_backtrack = false;
+                // if the guess was invalid, increment the guess
+                if let Some(next_digit) = board.board[check_idx].unwrap().next() {
+                    board.board[check_idx] = Some(next_digit);
+                }
+                // if we exhausted all guesses for this index, rewind guess and backtrack
+                else {
+                    board.board[check_idx] = None;
+                    stack.pop().expect("unreachable because stack is not empty");
+                    must_backtrack = true;
+                }
             }
         }
-        count
+
+        if num_solutions == 0 {
+            BoardStatus::Unsolvable
+        } else if num_solutions == 1 {
+            BoardStatus::OneSolution
+        } else {
+            unreachable!()
+        }
     }
 }
 impl Solver for BacktrackingSolver {
