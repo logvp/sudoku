@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::DigitSet;
 
 use super::{Board, SudokuRule};
@@ -150,10 +152,20 @@ impl SudokuRule for KnightsMove {
 pub type Line = Vec<usize>;
 pub struct ThermalSudoku {
     thermometers: Vec<Line>,
+    lookup: HashMap<usize, Vec<usize>>, // board index -> list of thermometers
 }
 impl ThermalSudoku {
     pub fn new(thermometers: Vec<Line>) -> Self {
-        Self { thermometers }
+        let mut lookup: HashMap<usize, Vec<usize>> = HashMap::new();
+        for (thermometer_id, thermometer) in thermometers.iter().enumerate() {
+            for idx in thermometer.iter() {
+                lookup.entry(*idx).or_default().push(thermometer_id);
+            }
+        }
+        Self {
+            thermometers,
+            lookup,
+        }
     }
 
     fn check_thermometer(thermometer: &Line, board: &Board) -> bool {
@@ -169,23 +181,26 @@ impl ThermalSudoku {
         }
         true
     }
+}
+impl SudokuRule for ThermalSudoku {
+    fn check_one(&self, board: &Board, index: usize) -> bool {
+        if let Some(matches) = self.lookup.get(&index) {
+            for thermometer_id in matches.iter() {
+                if !Self::check_thermometer(&self.thermometers[*thermometer_id], board) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
 
-    fn check_all(&self, board: &Board) -> bool {
+    fn check(&self, board: &Board) -> bool {
         for thermometer in self.thermometers.iter() {
             if !Self::check_thermometer(thermometer, board) {
                 return false;
             }
         }
         true
-    }
-}
-impl SudokuRule for ThermalSudoku {
-    fn check_one(&self, board: &Board, _index: usize) -> bool {
-        self.check_all(board)
-    }
-
-    fn check(&self, board: &Board) -> bool {
-        self.check_all(board)
     }
 }
 
