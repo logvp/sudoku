@@ -147,17 +147,21 @@ impl SudokuRule for KnightsMove {
     }
 }
 
-type Thermometer = Vec<usize>;
+pub type Line = Vec<usize>;
 pub struct ThermalSudoku {
-    thermometers: Vec<Thermometer>,
+    thermometers: Vec<Line>,
 }
 impl ThermalSudoku {
-    fn check_thermometer(thermometer: &Thermometer, board: &Board) -> bool {
+    pub fn new(thermometers: Vec<Line>) -> Self {
+        Self { thermometers }
+    }
+
+    fn check_thermometer(thermometer: &Line, board: &Board) -> bool {
         let mut last = 0;
         for index in thermometer {
             if let Some(digit) = board.board[*index] {
                 let num: u32 = digit.into();
-                if num < last {
+                if num <= last {
                     return false;
                 }
                 last = num;
@@ -165,6 +169,7 @@ impl ThermalSudoku {
         }
         true
     }
+
     fn check_all(&self, board: &Board) -> bool {
         for thermometer in self.thermometers.iter() {
             if !Self::check_thermometer(thermometer, board) {
@@ -412,7 +417,21 @@ mod tests {
 
         #[rustfmt::skip]
         let board: Board = Board::make([
-            1, 2, 4, 3, 0, 0, 0, 0, 0,
+            2, 1, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(!thermal.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 1, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0,

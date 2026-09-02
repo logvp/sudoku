@@ -602,6 +602,7 @@ pub fn solve_with(
     let mut game = GameState::new(board, rules);
 
     while !game.solved() {
+        debug!("Making a move");
         let action = solver.make_move(&game);
 
         let status = game.update(action);
