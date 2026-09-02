@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use log::{debug, error};
+use log::{debug, error, info};
 
 use crate::{Board, BoardStatus, Digit, SudokuBox, SudokuColumn, SudokuRow, SudokuRule};
 
@@ -104,6 +104,9 @@ fn verify_standard_memo(mut board: Board, memo: &mut VerifyMemo) -> BoardStatus 
     let mut num_solutions = 0;
     let mut must_backtrack = false;
     while !stack.is_empty() {
+        if let Some(result) = memo.get(&board) {
+            return *result;
+        }
         // if the guess was valid, continue on to the next open spot
         let check_idx = stack
             .last()
@@ -209,6 +212,8 @@ pub fn reduce_standard(mut board: Board) -> Option<Board> {
             board.board[index] = None;
         }
     }
+
+    info!("Final cache size: {}", memo.len());
 
     if original_board == board {
         // not reducible
