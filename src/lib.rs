@@ -379,8 +379,9 @@ impl BacktrackingSolver {
             unreachable!()
         }
 
+        let mut n_backtracks = 0;
         let mut must_backtrack = false;
-        while !stack.is_empty() {
+        while !stack.is_empty() && n_backtracks < 30000000 {
             // if the guess was valid, continue on to the next open spot
             let check_idx = stack
                 .last()
@@ -403,6 +404,7 @@ impl BacktrackingSolver {
                     board.board[check_idx] = None;
                     stack.pop().expect("unreachable because stack is not empty");
                     must_backtrack = true;
+                    n_backtracks += 1;
                 }
             }
         }
