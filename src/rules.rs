@@ -147,6 +147,43 @@ impl SudokuRule for KnightsMove {
     }
 }
 
+type Thermometer = Vec<usize>;
+pub struct ThermalSudoku {
+    thermometers: Vec<Thermometer>,
+}
+impl ThermalSudoku {
+    fn check_thermometer(thermometer: &Thermometer, board: &Board) -> bool {
+        let mut last = 0;
+        for index in thermometer {
+            if let Some(digit) = board.board[*index] {
+                let num: u32 = digit.into();
+                if num < last {
+                    return false;
+                }
+                last = num;
+            }
+        }
+        true
+    }
+    fn check_all(&self, board: &Board) -> bool {
+        for thermometer in self.thermometers.iter() {
+            if !Self::check_thermometer(thermometer, board) {
+                return false;
+            }
+        }
+        true
+    }
+}
+impl SudokuRule for ThermalSudoku {
+    fn check_one(&self, board: &Board, _index: usize) -> bool {
+        self.check_all(board)
+    }
+
+    fn check(&self, board: &Board) -> bool {
+        self.check_all(board)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -337,5 +374,54 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]);
         assert!(!knights_rule.check(&board));
+    }
+
+    #[test]
+    fn test_thermal() {
+        let thermal = ThermalSudoku {
+            thermometers: vec![vec![0, 1, 2, 3]],
+        };
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(thermal.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 2, 0, 4, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(thermal.check(&board));
+
+        #[rustfmt::skip]
+        let board: Board = Board::make([
+            1, 2, 4, 3, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        assert!(!thermal.check(&board));
     }
 }
