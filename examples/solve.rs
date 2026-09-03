@@ -1,4 +1,4 @@
-use sudoku::{BacktrackingSolver, Board, Digit, RulesWrapper, Solver, standard_sudoku_rules};
+use sudoku::{Arbiter, BacktrackingSolver, Board, Digit, Solver, standard_sudoku_rules};
 
 fn main() {
     #[rustfmt::skip]
@@ -22,7 +22,7 @@ fn main() {
         let digit = this_board.get(x, y).unwrap_or(Digit::_9);
         this_board.set(x, y, digit.shift());
 
-        let rules = RulesWrapper::new(standard_sudoku_rules());
+        let rules = Arbiter::new(standard_sudoku_rules());
         let mut solver = BacktrackingSolver::default();
 
         loop {

@@ -302,13 +302,13 @@ pub enum BoardStatus {
 }
 
 pub trait Solver {
-    fn make_move(&mut self, board: &Board, rules: &RulesWrapper) -> Action;
+    fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action;
 }
 
 #[derive(Default)]
 pub struct HumanSolver {}
 impl Solver for HumanSolver {
-    fn make_move(&mut self, board: &Board, _rules: &RulesWrapper) -> Action {
+    fn make_move(&mut self, board: &Board, _rules: &Arbiter) -> Action {
         let mut buf = String::new();
         loop {
             println!("Board:");
@@ -353,7 +353,7 @@ pub struct BacktrackingSolver {
     solution: Option<Board>,
 }
 impl BacktrackingSolver {
-    fn solve(&mut self, mut board: Board, rules: &RulesWrapper) -> Option<Board> {
+    fn solve(&mut self, mut board: Board, rules: &Arbiter) -> Option<Board> {
         if !rules.check(&board) {
             error!("Board is unsolvable");
             return None;
@@ -403,7 +403,7 @@ impl BacktrackingSolver {
         None
     }
 
-    pub fn verify_board(&self, mut board: Board, rules: &RulesWrapper) -> BoardStatus {
+    pub fn verify_board(&self, mut board: Board, rules: &Arbiter) -> BoardStatus {
         if !rules.check(&board) {
             error!("Board is unsolvable");
             return BoardStatus::Unsolvable;
@@ -468,7 +468,7 @@ impl BacktrackingSolver {
     }
 }
 impl Solver for BacktrackingSolver {
-    fn make_move(&mut self, board: &Board, rules: &RulesWrapper) -> Action {
+    fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action {
         if self.solution.is_none() {
             self.solution = self.solve(board.clone(), rules);
             if self.solution.is_none() {
@@ -499,12 +499,12 @@ impl Solver for BacktrackingSolver {
     }
 }
 
-pub type RulesList = Vec<Box<dyn SudokuRule>>;
-pub struct RulesWrapper {
-    rules: RulesList,
+pub type Rules = Vec<Box<dyn SudokuRule>>;
+pub struct Arbiter {
+    rules: Rules,
 }
-impl RulesWrapper {
-    pub fn new(rules: RulesList) -> Self {
+impl Arbiter {
+    pub fn new(rules: Rules) -> Self {
         Self { rules }
     }
 
@@ -566,7 +566,7 @@ impl RulesWrapper {
     }
 }
 
-pub fn standard_sudoku_rules() -> RulesList {
+pub fn standard_sudoku_rules() -> Rules {
     let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
     rules.push(Box::new(SudokuRow));
     rules.push(Box::new(SudokuColumn));
@@ -581,9 +581,11 @@ pub enum SolveError {
 
 pub fn solve_with(
     mut board: Board,
-    rules: RulesWrapper,
+    rules: Rules,
     solver: &mut dyn Solver,
 ) -> Result<Board, SolveError> {
+    let rules = Arbiter::new(rules);
+
     while !rules.is_solved(&board) {
         debug!("Making a move");
         let action = solver.make_move(&board, &rules);
@@ -607,17 +609,18 @@ pub fn solve_with(
 }
 
 type DefaultSolver = BacktrackingSolver;
-pub fn solve(board: Board, rules: Option<RulesWrapper>) -> Result<Board, SolveError> {
+pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
     let mut solver = DefaultSolver::default();
-    let rules = rules.unwrap_or_else(|| RulesWrapper::new(standard_sudoku_rules()));
+    let rules = rules.unwrap_or_else(standard_sudoku_rules);
     solve_with(board, rules, &mut solver)
 }
 
-pub fn verify(board: Board, rules: Option<RulesWrapper>) -> BoardStatus {
+pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
     let solver = DefaultSolver::default();
-    let rules = rules.unwrap_or_else(|| RulesWrapper::new(standard_sudoku_rules()));
+    let rules = rules.unwrap_or_else(standard_sudoku_rules);
+    let arbiter = Arbiter::new(rules);
 
-    solver.verify_board(board, &rules)
+    solver.verify_board(board, &arbiter)
 }
 
 #[cfg(test)]
@@ -637,7 +640,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let rules = RulesWrapper::new(standard_sudoku_rules());
+        let rules = Arbiter::new(standard_sudoku_rules());
         #[rustfmt::skip]
         let solution: Board = Board::make([
             8, 4, 1, 2, 5, 9, 7, 3, 6,
