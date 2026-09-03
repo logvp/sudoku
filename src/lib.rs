@@ -353,13 +353,7 @@ pub struct BacktrackingSolver {
     solution: Option<Board>,
 }
 impl BacktrackingSolver {
-    fn solve(&mut self, state: &GameState) -> bool {
-        let solution = state.board.clone();
-        self.solution = self.solve_impl(solution, state);
-        self.solution.is_some()
-    }
-
-    fn solve_impl(&mut self, mut board: Board, rules: &GameState) -> Option<Board> {
+    fn solve(&mut self, mut board: Board, rules: &GameState) -> Option<Board> {
         if !rules.check_board(&board) {
             error!("Board is unsolvable");
             return None;
@@ -477,9 +471,12 @@ impl BacktrackingSolver {
 }
 impl Solver for BacktrackingSolver {
     fn make_move(&mut self, state: &GameState) -> Action {
-        if self.solution.is_none() && !self.solve(state) {
-            error!("Board is unsolvable!");
-            return Action::Abort;
+        if self.solution.is_none() {
+            self.solution = self.solve(state.board.clone(), state);
+            if self.solution.is_none() {
+                error!("Board is unsolvable!");
+                return Action::Abort;
+            }
         }
         let solution = self.solution.as_ref().unwrap();
         let mut placed_digits = Vec::new();
