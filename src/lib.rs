@@ -302,17 +302,17 @@ pub enum BoardStatus {
 }
 
 pub trait Solver {
-    fn make_move(&mut self, state: &GameState) -> Action;
+    fn make_move(&mut self, board: &Board, rules: &RulesWrapper) -> Action;
 }
 
 #[derive(Default)]
 pub struct HumanSolver {}
 impl Solver for HumanSolver {
-    fn make_move(&mut self, state: &GameState) -> Action {
+    fn make_move(&mut self, board: &Board, _rules: &RulesWrapper) -> Action {
         let mut buf = String::new();
         loop {
             println!("Board:");
-            state.board.print();
+            board.print();
 
             println!("Enter your move");
             println!("x y digit");
@@ -353,8 +353,8 @@ pub struct BacktrackingSolver {
     solution: Option<Board>,
 }
 impl BacktrackingSolver {
-    fn solve(&mut self, mut board: Board, rules: &GameState) -> Option<Board> {
-        if !rules.check_board(&board) {
+    fn solve(&mut self, mut board: Board, rules: &RulesWrapper) -> Option<Board> {
+        if !rules.check(&board) {
             error!("Board is unsolvable");
             return None;
         }
@@ -380,7 +380,7 @@ impl BacktrackingSolver {
                 .last()
                 .copied()
                 .expect("unreachable because stack is not empty");
-            if !must_backtrack && rules.check_board_one(&board, check_idx) {
+            if !must_backtrack && rules.check_one(&board, check_idx) {
                 let Some(next_open) = board.next_open_index(check_idx) else {
                     return Some(board);
                 };
@@ -403,13 +403,11 @@ impl BacktrackingSolver {
         None
     }
 
-    pub fn verify_board(&self, state: &GameState) -> BoardStatus {
-        if !state.check() {
+    pub fn verify_board(&self, mut board: Board, rules: &RulesWrapper) -> BoardStatus {
+        if !rules.check(&board) {
             error!("Board is unsolvable");
             return BoardStatus::Unsolvable;
         }
-
-        let mut board = state.board.clone();
 
         let num_gaps = board.board.iter().filter(|x| x.is_none()).count();
         if num_gaps == 0 {
@@ -433,7 +431,7 @@ impl BacktrackingSolver {
                 .last()
                 .copied()
                 .expect("unreachable because stack is not empty");
-            if !must_backtrack && state.check_board_one(&board, check_idx) {
+            if !must_backtrack && rules.check_one(&board, check_idx) {
                 let Some(next_open) = board.next_open_index(check_idx) else {
                     num_solutions += 1;
                     if num_solutions > 1 {
@@ -470,9 +468,9 @@ impl BacktrackingSolver {
     }
 }
 impl Solver for BacktrackingSolver {
-    fn make_move(&mut self, state: &GameState) -> Action {
+    fn make_move(&mut self, board: &Board, rules: &RulesWrapper) -> Action {
         if self.solution.is_none() {
-            self.solution = self.solve(state.board.clone(), state);
+            self.solution = self.solve(board.clone(), rules);
             if self.solution.is_none() {
                 error!("Board is unsolvable!");
                 return Action::Abort;
@@ -480,14 +478,13 @@ impl Solver for BacktrackingSolver {
         }
         let solution = self.solution.as_ref().unwrap();
         let mut placed_digits = Vec::new();
-        for blank_idx in state
-            .board
+        for blank_idx in board
             .board
             .iter()
             .enumerate()
             .filter_map(|(i, x)| x.is_none().then_some(i))
         {
-            let (x, y) = state.board.xy(blank_idx);
+            let (x, y) = board.xy(blank_idx);
             placed_digits.push(DigitPos {
                 digit: solution.board[blank_idx].unwrap(),
                 x,
@@ -502,28 +499,27 @@ impl Solver for BacktrackingSolver {
     }
 }
 
-pub type Rules = Vec<Box<dyn SudokuRule>>;
-pub struct GameState {
-    board: Board,
-    rules: Rules,
+pub type RulesList = Vec<Box<dyn SudokuRule>>;
+pub struct RulesWrapper {
+    rules: RulesList,
 }
-impl GameState {
-    pub fn new(board: Board, rules: Rules) -> Self {
-        Self { board, rules }
+impl RulesWrapper {
+    pub fn new(rules: RulesList) -> Self {
+        Self { rules }
     }
 
-    pub fn update(&mut self, action: Action) -> UpdateResult {
+    pub fn update(&self, board: &mut Board, action: Action) -> UpdateResult {
         match action {
             Action::Set(digit_list) => {
                 for DigitPos { digit, x, y } in digit_list {
-                    if self.board.get(x, y).is_some() {
+                    if board.get(x, y).is_some() {
                         error!("Attempted to set already set spot at ({},{})", x, y);
                         return UpdateResult::IllegalMove;
                     }
-                    let mut new_board = self.board.clone();
+                    let mut new_board = board.clone();
                     new_board.set(x, y, digit);
-                    if self.check_board_one(&new_board, self.board.index(x, y)) {
-                        self.board = new_board;
+                    if self.check_one(&new_board, board.index(x, y)) {
+                        *board = new_board;
                         trace!("Set digit: {} at ({},{})", digit, x, y);
                     } else {
                         error!("Illegal digit: {} at ({},{})", digit, x, y);
@@ -537,7 +533,7 @@ impl GameState {
                 UpdateResult::Aborted
             }
             Action::AlreadySolved => {
-                if !self.solved() {
+                if !self.is_solved(board) {
                     error!("Solver reported solved but its not!");
                     return UpdateResult::IllegalMove;
                 }
@@ -547,11 +543,7 @@ impl GameState {
         }
     }
 
-    pub fn check(&self) -> bool {
-        self.check_board(&self.board)
-    }
-
-    fn check_board(&self, board: &Board) -> bool {
+    pub fn check(&self, board: &Board) -> bool {
         for rule in &self.rules {
             if !rule.check(board) {
                 return false;
@@ -560,7 +552,7 @@ impl GameState {
         true
     }
 
-    fn check_board_one(&self, board: &Board, index: usize) -> bool {
+    fn check_one(&self, board: &Board, index: usize) -> bool {
         for rule in &self.rules {
             if !rule.check_one(board, index) {
                 return false;
@@ -569,16 +561,12 @@ impl GameState {
         true
     }
 
-    pub fn solved(&self) -> bool {
-        !self.board.has_gaps() && self.check()
-    }
-
-    pub fn print_board(&self) {
-        self.board.print();
+    pub fn is_solved(&self, board: &Board) -> bool {
+        !board.has_gaps() && self.check(board)
     }
 }
 
-pub fn standard_sudoku_rules() -> Rules {
+pub fn standard_sudoku_rules() -> RulesList {
     let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
     rules.push(Box::new(SudokuRow));
     rules.push(Box::new(SudokuColumn));
@@ -592,24 +580,22 @@ pub enum SolveError {
 }
 
 pub fn solve_with(
-    board: Board,
-    rules: Rules,
+    mut board: Board,
+    rules: RulesWrapper,
     solver: &mut dyn Solver,
 ) -> Result<Board, SolveError> {
-    let mut game = GameState::new(board, rules);
-
-    while !game.solved() {
+    while !rules.is_solved(&board) {
         debug!("Making a move");
-        let action = solver.make_move(&game);
+        let action = solver.make_move(&board, &rules);
 
-        let status = game.update(action);
+        let status = rules.update(&mut board, action);
         match status {
             UpdateResult::Done => {
-                assert!(game.solved());
+                assert!(rules.is_solved(&board));
                 break;
             }
             UpdateResult::Ok => {
-                assert!(game.check());
+                assert!(rules.check(&board));
             }
             UpdateResult::Aborted => {
                 return Err(SolveError::Aborted);
@@ -617,22 +603,21 @@ pub fn solve_with(
             UpdateResult::IllegalMove => return Err(SolveError::Illegal),
         }
     }
-    Ok(game.board)
+    Ok(board)
 }
 
 type DefaultSolver = BacktrackingSolver;
-pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
+pub fn solve(board: Board, rules: Option<RulesWrapper>) -> Result<Board, SolveError> {
     let mut solver = DefaultSolver::default();
-    let rules = rules.unwrap_or_else(standard_sudoku_rules);
+    let rules = rules.unwrap_or_else(|| RulesWrapper::new(standard_sudoku_rules()));
     solve_with(board, rules, &mut solver)
 }
 
-pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
+pub fn verify(board: Board, rules: Option<RulesWrapper>) -> BoardStatus {
     let solver = DefaultSolver::default();
-    let rules = rules.unwrap_or_else(standard_sudoku_rules);
-    let game = GameState::new(board, rules);
+    let rules = rules.unwrap_or_else(|| RulesWrapper::new(standard_sudoku_rules()));
 
-    solver.verify_board(&game)
+    solver.verify_board(board, &rules)
 }
 
 #[cfg(test)]
@@ -641,7 +626,7 @@ mod tests {
 
     fn test_solver_harness<T: Solver>(mut solver: T) {
         #[rustfmt::skip]
-        let board: Board = Board::make([
+        let mut board: Board = Board::make([
             0, 0, 0, 2, 0, 9, 0, 0, 0,
             9, 7, 6, 0, 0, 0, 2, 0, 5,
             0, 0, 5, 6, 7, 0, 1, 0, 8,
@@ -652,8 +637,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let rules = standard_sudoku_rules();
-        let mut game = GameState { board, rules };
+        let rules = RulesWrapper::new(standard_sudoku_rules());
         #[rustfmt::skip]
         let solution: Board = Board::make([
             8, 4, 1, 2, 5, 9, 7, 3, 6,
@@ -667,14 +651,14 @@ mod tests {
             4, 6, 7, 5, 9, 3, 8, 2, 1,
         ]);
         loop {
-            let action = solver.make_move(&game);
-            assert!(game.update(action).is_ok());
-            assert!(game.check());
-            if game.solved() {
+            let action = solver.make_move(&board, &rules);
+            assert!(rules.update(&mut board, action).is_ok());
+            assert!(rules.check(&board));
+            if rules.is_solved(&board) {
                 break;
             }
         }
-        assert_eq!(game.board, solution);
+        assert_eq!(board, solution);
     }
 
     #[test]

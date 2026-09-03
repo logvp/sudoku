@@ -1,8 +1,4 @@
-use std::collections::HashMap;
-
-use crate::DigitSet;
-
-use super::{Board, SudokuRule};
+use super::{Board, DigitSet, SudokuRule};
 
 pub struct SudokuRow;
 impl SudokuRow {

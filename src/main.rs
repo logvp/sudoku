@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use clap::{Parser, Subcommand};
 use log::{error, info, trace};
 
-use sudoku::{Board, BoardStatus, HumanSolver, Rules, standard_sudoku_rules};
+use sudoku::{Board, BoardStatus, HumanSolver, RulesList, RulesWrapper, standard_sudoku_rules};
 
 /// Sudoku solver
 #[derive(Parser, Debug)]
@@ -86,8 +86,8 @@ where
     parse_board(sudoku_str.as_str())
 }
 
-fn parse_rules(rules_str: &str) -> Option<Rules> {
-    let mut rules = Rules::new();
+fn parse_rules(rules_str: &str) -> Option<RulesWrapper> {
+    let mut rules = RulesList::new();
     for line in rules_str.lines() {
         let word = line.trim();
         match word {
@@ -102,10 +102,10 @@ fn parse_rules(rules_str: &str) -> Option<Rules> {
             }
         }
     }
-    Some(rules)
+    Some(RulesWrapper::new(rules))
 }
 
-fn read_rules<P>(path: P) -> Option<Rules>
+fn read_rules<P>(path: P) -> Option<RulesWrapper>
 where
     P: AsRef<Path>,
 {
@@ -128,7 +128,9 @@ fn main() {
     let args = Args::parse();
     trace!("{:?}", args);
 
-    let rules = args.rules_file.map(|rules_file| read_rules(rules_file).expect("Could not read rules file"));
+    let rules = args
+        .rules_file
+        .map(|rules_file| read_rules(rules_file).expect("Could not read rules file"));
 
     match args.command {
         Commands::Check { input } => {
@@ -161,7 +163,7 @@ fn main() {
                 error!("Could not read board from {}", input.display());
                 return;
             };
-            let rules = rules.unwrap_or_else(standard_sudoku_rules);
+            let rules = rules.unwrap_or_else(|| RulesWrapper::new(standard_sudoku_rules()));
             let mut solver = HumanSolver::default();
             let solved = sudoku::solve_with(board, rules, &mut solver);
             if let Ok(solved) = solved {

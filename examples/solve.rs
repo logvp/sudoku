@@ -1,4 +1,4 @@
-use sudoku::{BacktrackingSolver, Board, Digit, GameState, Solver, standard_sudoku_rules};
+use sudoku::{BacktrackingSolver, Board, Digit, RulesWrapper, Solver, standard_sudoku_rules};
 
 fn main() {
     #[rustfmt::skip]
@@ -22,21 +22,20 @@ fn main() {
         let digit = this_board.get(x, y).unwrap_or(Digit::_9);
         this_board.set(x, y, digit.shift());
 
-        let rules = standard_sudoku_rules();
-        let mut game = GameState::new(this_board, rules);
+        let rules = RulesWrapper::new(standard_sudoku_rules());
         let mut solver = BacktrackingSolver::default();
 
         loop {
-            let action = solver.make_move(&game);
+            let action = solver.make_move(&this_board, &rules);
 
-            let status = game.update(action);
+            let status = rules.update(&mut this_board, action);
             if !status.is_ok() {
                 break;
             }
 
-            assert!(game.check());
+            assert!(rules.check(&board));
 
-            if game.solved() {
+            if rules.is_solved(&board) {
                 solvable += 1;
                 break;
             }

@@ -1,7 +1,4 @@
-use sudoku::{
-    BacktrackingSolver, Board, Digit, GameState, Solver, ThermalSudoku, solve,
-    standard_sudoku_rules,
-};
+use sudoku::{Board, RulesWrapper, ThermalSudoku, solve, standard_sudoku_rules};
 
 fn main() {
     colog::basic_builder()
@@ -29,6 +26,7 @@ fn main() {
         vec![42, 50, 58, 66],
         vec![43, 51, 59],
     ])));
+    let rules = RulesWrapper::new(rules);
 
     if let Ok(soln) = solve(board, Some(rules)) {
         println!("Solved!");
