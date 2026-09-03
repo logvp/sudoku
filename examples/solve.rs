@@ -26,9 +26,7 @@ fn main() {
         let mut solver = BacktrackingSolver::default();
 
         loop {
-            let action = solver.make_move(&this_board, &rules);
-
-            let status = rules.update(&mut this_board, action);
+            let status = rules.step(&mut this_board, &mut solver);
             if !status.is_ok() {
                 break;
             }

@@ -508,7 +508,12 @@ impl Arbiter {
         Self { rules }
     }
 
-    pub fn update(&self, board: &mut Board, action: Action) -> UpdateResult {
+    pub fn step(&self, board: &mut Board, solver: &mut dyn Solver) -> UpdateResult {
+        let action = solver.make_move(board, self);
+        self.update(board, action)
+    }
+
+    fn update(&self, board: &mut Board, action: Action) -> UpdateResult {
         match action {
             Action::Set(digit_list) => {
                 for DigitPos { digit, x, y } in digit_list {
