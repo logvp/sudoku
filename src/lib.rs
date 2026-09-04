@@ -805,7 +805,7 @@ pub fn solve_with(
     Ok(board)
 }
 
-type DefaultSolver = BacktrackingSolver;
+type DefaultSolver = ConstraintSolver;
 pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
     let mut solver = DefaultSolver::default();
     let rules = rules.unwrap_or_else(standard_sudoku_rules);
