@@ -410,7 +410,7 @@ pub struct ConstraintSolver {
 }
 impl ConstraintSolver {
     fn solve(mut board: Board, rules: &Arbiter) -> Option<Board> {
-        let printing = true;
+        let printing = false;
         fn print_options(all_options: &[DigitSet; Board::WIDTH * Board::HEIGHT]) {
             let mut idx = 0;
             println!();
