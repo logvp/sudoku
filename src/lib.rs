@@ -437,8 +437,8 @@ impl ConstraintSolver {
             }
         });
 
-        println!("Initial:");
-        board.print();
+        // println!("Initial:");
+        // board.print();
 
         let mut did_work = true;
         while did_work {
@@ -529,13 +529,13 @@ impl ConstraintSolver {
             }
         }
 
-        println!("Final:");
-        board.print();
+        // println!("Final:");
+        // board.print();
 
         if rules.is_solved(&board) {
             Some(board)
         } else {
-            print_options(&all_options);
+            // print_options(&all_options);
             warn!("Could not solve the board. Pretty sure it is ambiguous");
             None
         }
