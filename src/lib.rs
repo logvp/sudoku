@@ -540,6 +540,13 @@ impl ConstraintSolver {
             None
         }
     }
+
+    fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
+        match Self::solve(board, rules) {
+            Some(_) => BoardStatus::OneSolution,
+            None => BoardStatus::Unsolvable, // TODO: catchall
+        }
+    }
 }
 impl Solver for ConstraintSolver {
     fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action {
