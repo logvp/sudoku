@@ -1,4 +1,6 @@
-use sudoku::{Arbiter, BacktrackingSolver, Board, Digit, Solver, standard_sudoku_rules};
+use sudoku::{
+    Arbiter, BacktrackingSolver, Board, ConstraintSolver, Digit, Solver, standard_sudoku_rules,
+};
 
 fn main() {
     #[rustfmt::skip]
@@ -23,7 +25,7 @@ fn main() {
         this_board.set(x, y, digit.shift());
 
         let rules = Arbiter::new(standard_sudoku_rules());
-        let mut solver = BacktrackingSolver::default();
+        let mut solver = ConstraintSolver::default();
 
         loop {
             let status = rules.step(&mut this_board, &mut solver);

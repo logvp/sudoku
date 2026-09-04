@@ -21,7 +21,7 @@
 
 pub mod optimized;
 mod rules;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use log::{debug, error, info, trace};
 
@@ -159,6 +159,40 @@ impl DigitSet {
         for x in self.storage.iter_mut() {
             *x = !*x;
         }
+    }
+    pub fn count(&self) -> usize {
+        let mut count = 0;
+        for digit in Digit::DIGITS {
+            if self.get(digit) {
+                count += 1;
+            }
+        }
+        count
+    }
+    pub fn first(&self) -> Option<Digit> {
+        for digit in Digit::DIGITS {
+            if self.get(digit) {
+                return Some(digit);
+            }
+        }
+        None
+    }
+}
+impl Debug for DigitSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DigitSet {{")?;
+        let mut first = true;
+        // TODO: Can't iterate over DigitSet
+        for digit in Digit::DIGITS {
+            if self.get(digit) {
+                if !first {
+                    write!(f, ",")?;
+                }
+                write!(f, " {}", digit)?;
+                first = false;
+            }
+        }
+        write!(f, " }}")
     }
 }
 
@@ -348,6 +382,114 @@ impl Solver for HumanSolver {
     }
 }
 
+fn make_move_from_solution(input: &Board, solution: &Board) -> Action {
+    let mut placed_digits = Vec::new();
+    for blank_idx in input
+        .board
+        .iter()
+        .enumerate()
+        .filter_map(|(i, x)| x.is_none().then_some(i))
+    {
+        let (x, y) = input.xy(blank_idx);
+        placed_digits.push(DigitPos {
+            digit: solution.board[blank_idx].unwrap(),
+            x,
+            y,
+        });
+    }
+    if placed_digits.is_empty() {
+        Action::AlreadySolved
+    } else {
+        Action::Set(placed_digits)
+    }
+}
+
+#[derive(Default)]
+pub struct ConstraintSolver {
+    state: (),
+}
+impl ConstraintSolver {
+    fn solve(mut board: Board, rules: &Arbiter) -> Option<Board> {
+        let mut all_options = board.board.map(|digit| match digit {
+            Some(_) => DigitSet::new(),
+            None => {
+                let mut set = DigitSet::new();
+                set.invert();
+                set
+            }
+        });
+
+        println!("Initial:");
+        board.print();
+
+        let mut did_work = true;
+        while did_work {
+            did_work = false;
+            let unset_cells: Vec<_> = board
+                .board
+                .iter()
+                .enumerate()
+                .filter_map(|(i, cell)| cell.is_none().then_some(i))
+                .collect();
+
+            for idx in unset_cells {
+                let options = &mut all_options[idx];
+                match options.count() {
+                    0 => unreachable!(),
+                    1 => {
+                        let digit = options
+                            .first()
+                            .expect("count == 1 so set must be non-empty");
+                        board.board[idx] = Some(digit);
+                        options.clear(digit);
+                        did_work = true;
+                        println!("Set {} at {}:", digit, idx);
+                        board.print();
+                    }
+                    2.. => {
+                        assert!(board.board[idx].is_none());
+
+                        // DigitSet does not have an iterator
+                        for digit in Digit::DIGITS {
+                            if options.get(digit) {
+                                board.board[idx] = Some(digit);
+                                if !rules.check_one(&board, idx) {
+                                    options.clear(digit);
+                                    did_work = true;
+                                }
+                            }
+                        }
+                        board.board[idx] = None;
+                    }
+                }
+            }
+            let mut idx = 0;
+            println!();
+            for j in 0..Board::HEIGHT {
+                for i in 0..Board::WIDTH {
+                    print!("{:?} ", all_options[idx]);
+                    idx += 1;
+                }
+                println!();
+            }
+        }
+
+        println!("Final:");
+        board.print();
+
+        rules.is_solved(&board).then_some(board)
+    }
+}
+impl Solver for ConstraintSolver {
+    fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action {
+        if let Some(solution) = Self::solve(board.clone(), rules) {
+            make_move_from_solution(board, &solution)
+        } else {
+            todo!()
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct BacktrackingSolver {
     solution: Option<Board>,
@@ -477,25 +619,7 @@ impl Solver for BacktrackingSolver {
             }
         }
         let solution = self.solution.as_ref().unwrap();
-        let mut placed_digits = Vec::new();
-        for blank_idx in board
-            .board
-            .iter()
-            .enumerate()
-            .filter_map(|(i, x)| x.is_none().then_some(i))
-        {
-            let (x, y) = board.xy(blank_idx);
-            placed_digits.push(DigitPos {
-                digit: solution.board[blank_idx].unwrap(),
-                x,
-                y,
-            });
-        }
-        if placed_digits.is_empty() {
-            Action::AlreadySolved
-        } else {
-            Action::Set(placed_digits)
-        }
+        make_move_from_solution(board, solution)
     }
 }
 
