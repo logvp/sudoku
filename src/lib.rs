@@ -450,7 +450,7 @@ impl ConstraintSolver {
                 .filter_map(|(i, cell)| cell.is_none().then_some(i))
                 .collect();
 
-            for idx in unset_cells {
+            for idx in unset_cells.iter().copied() {
                 let options = &mut all_options[idx];
                 match options.count() {
                     0 => unreachable!(),
@@ -473,7 +473,7 @@ impl ConstraintSolver {
                     2.. => {
                         assert!(board.board[idx].is_none());
 
-                        // DigitSet does not have an iterator
+                        // TODO: DigitSet does not have an iterator
                         for digit in Digit::DIGITS {
                             if options.get(digit) {
                                 board.board[idx] = Some(digit);
@@ -497,6 +497,36 @@ impl ConstraintSolver {
             if printing {
                 print_options(&all_options);
             }
+
+            if !did_work && !rules.is_solved(&board) {
+                debug!("Guessing and checking");
+
+                for idx in unset_cells {
+                    let options = &mut all_options[idx];
+                    assert!(board.board[idx].is_none());
+                    assert!(options.count() > 1);
+                    // TODO: DigitSet does not have an iterator
+                    for digit in Digit::DIGITS {
+                        if options.get(digit) {
+                            board.board[idx] = Some(digit);
+                            if ConstraintSolver::solve(board.clone(), rules).is_none() {
+                                options.clear(digit);
+                                did_work = true;
+                            }
+                        }
+                    }
+                    board.board[idx] = None;
+                    // TODO: benchmark best place for this check
+                    if options.count() == 0 {
+                        let (x, y) = board.xy(idx);
+                        warn!("No possible valid digits for ({}, {})", x, y);
+                        return None;
+                    }
+                    if did_work {
+                        break;
+                    }
+                }
+            }
         }
 
         println!("Final:");
@@ -506,7 +536,8 @@ impl ConstraintSolver {
             Some(board)
         } else {
             print_options(&all_options);
-            todo!("Could not solve board")
+            warn!("Could not solve the board. Pretty sure it is ambiguous");
+            None
         }
     }
 }
