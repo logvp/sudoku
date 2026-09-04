@@ -1,8 +1,10 @@
-use sudoku::{
-    Arbiter, BacktrackingSolver, Board, ConstraintSolver, Digit, Solver, standard_sudoku_rules,
-};
+use sudoku::{Arbiter, Board, ConstraintSolver, Digit, standard_sudoku_rules};
 
 fn main() {
+    colog::basic_builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     #[rustfmt::skip]
     let board: Board = Board::make([
         0, 0, 0, 2, 0, 9, 0, 0, 0,

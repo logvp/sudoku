@@ -1,4 +1,7 @@
-use sudoku::{Board, ThermalSudoku, solve, standard_sudoku_rules};
+use sudoku::{
+    BacktrackingSolver, Board, ConstraintSolver, ThermalSudoku, solve, solve_with,
+    standard_sudoku_rules,
+};
 
 fn main() {
     colog::basic_builder()
@@ -27,7 +30,7 @@ fn main() {
         vec![43, 51, 59],
     ])));
 
-    if let Ok(soln) = solve(board, Some(rules)) {
+    if let Ok(soln) = solve_with(board, rules, &mut BacktrackingSolver::default()) {
         println!("Solved!");
         soln.print();
     } else {

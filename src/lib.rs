@@ -23,7 +23,7 @@ pub mod optimized;
 mod rules;
 use std::fmt::{Debug, Display};
 
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 
 pub use rules::*;
 
@@ -273,7 +273,7 @@ impl Board {
         self.board[self.index(x, y)] = None
     }
 
-    fn has_gaps(&self) -> bool {
+    pub fn has_gaps(&self) -> bool {
         self.board.iter().any(Option::is_none)
     }
 
@@ -410,6 +410,24 @@ pub struct ConstraintSolver {
 }
 impl ConstraintSolver {
     fn solve(mut board: Board, rules: &Arbiter) -> Option<Board> {
+        let printing = true;
+        fn print_options(all_options: &[DigitSet; Board::WIDTH * Board::HEIGHT]) {
+            let mut idx = 0;
+            println!();
+            for _ in 0..Board::HEIGHT {
+                for _ in 0..Board::WIDTH {
+                    print!("{:?} ", all_options[idx]);
+                    idx += 1;
+                }
+                println!();
+            }
+        }
+
+        if !rules.check(&board) {
+            warn!("Presented board is invalid");
+            return None;
+        }
+
         let mut all_options = board.board.map(|digit| match digit {
             Some(_) => DigitSet::new(),
             None => {
@@ -441,10 +459,16 @@ impl ConstraintSolver {
                             .first()
                             .expect("count == 1 so set must be non-empty");
                         board.board[idx] = Some(digit);
+                        if !rules.check_one(&board, idx) {
+                            // Last option left does not fit
+                            return None;
+                        }
                         options.clear(digit);
                         did_work = true;
-                        println!("Set {} at {}:", digit, idx);
-                        board.print();
+                        if printing {
+                            println!("Set {} at {}:", digit, idx);
+                            board.print();
+                        }
                     }
                     2.. => {
                         assert!(board.board[idx].is_none());
@@ -460,24 +484,30 @@ impl ConstraintSolver {
                             }
                         }
                         board.board[idx] = None;
+                        // TODO: benchmark best place for this check
+                        if options.count() == 0 {
+                            let (x, y) = board.xy(idx);
+                            warn!("No possible valid digits for ({}, {})", x, y);
+                            return None;
+                        }
                     }
                 }
             }
-            let mut idx = 0;
-            println!();
-            for j in 0..Board::HEIGHT {
-                for i in 0..Board::WIDTH {
-                    print!("{:?} ", all_options[idx]);
-                    idx += 1;
-                }
-                println!();
+            assert!(rules.check(&board));
+            if printing {
+                print_options(&all_options);
             }
         }
 
         println!("Final:");
         board.print();
 
-        rules.is_solved(&board).then_some(board)
+        if rules.is_solved(&board) {
+            Some(board)
+        } else {
+            print_options(&all_options);
+            todo!("Could not solve board")
+        }
     }
 }
 impl Solver for ConstraintSolver {
@@ -485,7 +515,7 @@ impl Solver for ConstraintSolver {
         if let Some(solution) = Self::solve(board.clone(), rules) {
             make_move_from_solution(board, &solution)
         } else {
-            todo!()
+            Action::Abort
         }
     }
 }
