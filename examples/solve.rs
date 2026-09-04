@@ -31,9 +31,9 @@ fn main() {
                 break;
             }
 
-            assert!(rules.check(&board));
+            assert!(rules.check(&this_board));
 
-            if rules.is_solved(&board) {
+            if rules.is_solved(&this_board) {
                 solvable += 1;
                 break;
             }
