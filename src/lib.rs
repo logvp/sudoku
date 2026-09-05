@@ -443,63 +443,74 @@ impl ConstraintSolver {
         let mut did_work = true;
         while did_work {
             did_work = false;
-            let unset_cells: Vec<_> = board
-                .board
-                .iter()
-                .enumerate()
-                .filter_map(|(i, cell)| cell.is_none().then_some(i))
-                .collect();
+            // Shake out the constrained cells
+            {
+                let unset_cells: Vec<_> = board
+                    .board
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, cell)| cell.is_none().then_some(i))
+                    .collect(); // TODO: reuse one allocation for this
 
-            for idx in unset_cells.iter().copied() {
-                let options = &mut all_options[idx];
-                match options.count() {
-                    0 => unreachable!(),
-                    1 => {
-                        let digit = options
-                            .first()
-                            .expect("count == 1 so set must be non-empty");
-                        board.board[idx] = Some(digit);
-                        if !rules.check_one(&board, idx) {
-                            // Last option left does not fit
-                            return None;
-                        }
-                        options.clear(digit);
-                        did_work = true;
-                        if printing {
-                            println!("Set {} at {}:", digit, idx);
-                            board.print();
-                        }
-                    }
-                    2.. => {
-                        assert!(board.board[idx].is_none());
-
-                        // TODO: DigitSet does not have an iterator
-                        for digit in Digit::DIGITS {
-                            if options.get(digit) {
-                                board.board[idx] = Some(digit);
-                                if !rules.check_one(&board, idx) {
-                                    options.clear(digit);
-                                    did_work = true;
-                                }
+                for idx in unset_cells.iter().copied() {
+                    let options = &mut all_options[idx];
+                    match options.count() {
+                        0 => unreachable!(),
+                        1 => {
+                            let digit = options
+                                .first()
+                                .expect("count == 1 so set must be non-empty");
+                            board.board[idx] = Some(digit);
+                            if !rules.check_one(&board, idx) {
+                                // Last option left does not fit
+                                return None;
+                            }
+                            options.clear(digit);
+                            did_work = true;
+                            if printing {
+                                println!("Set {} at {}:", digit, idx);
+                                board.print();
                             }
                         }
-                        board.board[idx] = None;
-                        // TODO: benchmark best place for this check
-                        if options.count() == 0 {
-                            let (x, y) = board.xy(idx);
-                            warn!("No possible valid digits for ({}, {})", x, y);
-                            return None;
+                        2.. => {
+                            assert!(board.board[idx].is_none());
+
+                            // TODO: DigitSet does not have an iterator
+                            for digit in Digit::DIGITS {
+                                if options.get(digit) {
+                                    board.board[idx] = Some(digit);
+                                    if !rules.check_one(&board, idx) {
+                                        options.clear(digit);
+                                        did_work = true;
+                                    }
+                                }
+                            }
+                            board.board[idx] = None;
+                            // TODO: benchmark best place for this check
+                            if options.count() == 0 {
+                                let (x, y) = board.xy(idx);
+                                warn!("No possible valid digits for ({}, {})", x, y);
+                                return None;
+                            }
                         }
                     }
                 }
-            }
-            assert!(rules.check(&board));
-            if printing {
-                print_options(&all_options);
+                assert!(rules.check(&board));
+                if printing {
+                    print_options(&all_options);
+                }
             }
 
+            // If the constraints made no progress do some guess and check to rule out possibilities
             if !did_work && !rules.is_solved(&board) {
                 debug!("Guessing and checking");
+
+                let unset_cells: Vec<_> = board
+                    .board
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, cell)| cell.is_none().then_some(i))
+                    .collect(); // TODO: reuse one allocation for this
 
                 for idx in unset_cells {
                     let options = &mut all_options[idx];
@@ -527,7 +538,7 @@ impl ConstraintSolver {
                     }
                 }
             }
-        }
+        } // end main loop
 
         // println!("Final:");
         // board.print();
@@ -542,6 +553,9 @@ impl ConstraintSolver {
     }
 
     fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
+        if rules.is_solved(&board) {
+            return BoardStatus::AlreadySolved;
+        }
         match Self::solve(board, rules) {
             Some(_) => BoardStatus::OneSolution,
             None => BoardStatus::Unsolvable, // TODO: catchall
