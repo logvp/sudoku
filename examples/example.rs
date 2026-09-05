@@ -30,7 +30,7 @@ fn main() {
         vec![43, 51, 59],
     ])));
 
-    if let Ok(soln) = solve_with(board, rules, &mut BacktrackingSolver::default()) {
+    if let Ok(soln) = solve_with(board, rules, &mut ConstraintSolver::default()) {
         println!("Solved!");
         soln.print();
     } else {
