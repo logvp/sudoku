@@ -404,6 +404,43 @@ fn make_move_from_solution(input: &Board, solution: &Board) -> Action {
     }
 }
 
+struct PossibleDigits {
+    digits: [DigitSet; Board::WIDTH * Board::HEIGHT],
+}
+impl PossibleDigits {
+    fn from(board: &Board) -> Self {
+        let digits = board.board.map(|digit| match digit {
+            Some(digit) => {
+                let mut set = DigitSet::new();
+                set.set(digit);
+                set
+            }
+            None => {
+                let mut set = DigitSet::new();
+                set.invert();
+                set
+            }
+        });
+        Self { digits }
+    }
+
+    fn get_index(&mut self, index: usize) -> &mut DigitSet {
+        &mut self.digits[index]
+    }
+
+    fn print(&self) {
+        let mut idx = 0;
+        println!();
+        for _ in 0..Board::HEIGHT {
+            for _ in 0..Board::WIDTH {
+                print!("{:?} ", self.digits[idx]);
+                idx += 1;
+            }
+            println!();
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 enum ConstraintResult {
     DepthLimit,
@@ -419,31 +456,13 @@ pub struct ConstraintSolver {
 impl ConstraintSolver {
     fn solve(mut board: Board, rules: &Arbiter, depth: usize) -> (Option<Board>, ConstraintResult) {
         let printing = false;
-        fn print_options(all_options: &[DigitSet; Board::WIDTH * Board::HEIGHT]) {
-            let mut idx = 0;
-            println!();
-            for _ in 0..Board::HEIGHT {
-                for _ in 0..Board::WIDTH {
-                    print!("{:?} ", all_options[idx]);
-                    idx += 1;
-                }
-                println!();
-            }
-        }
 
         if !rules.check(&board) {
             warn!("Presented board is invalid");
             return (None, ConstraintResult::Contradiction);
         }
 
-        let mut all_options = board.board.map(|digit| match digit {
-            Some(_) => DigitSet::new(),
-            None => {
-                let mut set = DigitSet::new();
-                set.invert();
-                set
-            }
-        });
+        let mut all_options = PossibleDigits::from(&board);
 
         // println!("{}: Initial:", depth);
         // board.print();
@@ -461,7 +480,7 @@ impl ConstraintSolver {
                     .collect(); // TODO: reuse one allocation for this
 
                 for idx in unset_cells.iter().copied() {
-                    let options = &mut all_options[idx];
+                    let options = all_options.get_index(idx);
                     match options.count() {
                         0 => unreachable!(),
                         1 => {
@@ -505,7 +524,7 @@ impl ConstraintSolver {
                 }
                 assert!(rules.check(&board));
                 if printing {
-                    print_options(&all_options);
+                    all_options.print();
                 }
             }
 
@@ -523,7 +542,7 @@ impl ConstraintSolver {
                         .collect(); // TODO: reuse one allocation for this
 
                     for idx in unset_cells {
-                        let options = &mut all_options[idx];
+                        let options = all_options.get_index(idx);
                         assert!(board.board[idx].is_none());
                         assert!(options.count() > 1);
                         // TODO: DigitSet does not have an iterator
