@@ -704,8 +704,9 @@ impl Solver for ConstraintSolver {
                 info!("ConstraintSolver proved board is unsolvable");
                 Action::Abort
             }
-            ConstraintResult::DepthLimit(..) => {
+            ConstraintResult::DepthLimit(choices) => {
                 error!("ConstraintSolver reached depth limit and could not solve board");
+                choices.print();
                 Action::Abort
             }
         }
