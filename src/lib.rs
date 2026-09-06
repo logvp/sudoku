@@ -492,7 +492,7 @@ impl ConstraintSolver {
         depth: usize,
         validate_one_solution: bool,
     ) -> ConstraintResult {
-        let printing = true;
+        let printing = false;
 
         if !rules.check(&board) {
             warn!("Presented board is invalid");

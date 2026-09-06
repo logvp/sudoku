@@ -18,6 +18,7 @@ fn main() {
         0, 0, 0, 5, 0, 3, 0, 0, 0,
     ]);
 
+    let mut total_checks = 0;
     let mut already_solved = 0;
     let mut proper = 0;
     let mut ambiguous = 0;
@@ -40,6 +41,8 @@ fn main() {
                 BoardStatus::MultipleSolutions => ambiguous += 1,
                 BoardStatus::Unsolvable => unsolvable += 1,
             }
+            total_checks += 1;
+            dbg!(total_checks);
         }
     }
     println!("Done!");
