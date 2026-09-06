@@ -511,9 +511,8 @@ impl ConstraintSolver {
         // println!("{}: Initial:", depth);
         // board.print();
 
-        let mut did_work = true;
-        while did_work {
-            did_work = false;
+        loop {
+            let mut did_work = false;
             // Shake out the constrained cells
             {
                 let unset_cells: Vec<_> = board
@@ -612,7 +611,6 @@ impl ConstraintSolver {
                                         }
                                         ConstraintResult::Solvable(solved) => {
                                             if validate_one_solution {
-                                                debug!("Found a solution with {} @ {}", digit, idx);
                                                 num_solved += 1;
                                                 new_options.union(&PossibleDigits::from(&solved));
                                                 solved_board = Some(solved);
@@ -639,7 +637,6 @@ impl ConstraintSolver {
                                     all_options = new_options;
                                 }
                                 1 => {
-                                    debug!("Found solution");
                                     return ConstraintResult::Solvable(
                                         solved_board.expect("Should be some if num_solved > 0"),
                                     );
@@ -650,7 +647,7 @@ impl ConstraintSolver {
                         // TODO: benchmark best place for this check
                         if all_options.get_index(idx).count() == 0 {
                             let (x, y) = board.xy(idx);
-                            debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
+                            // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
                             return ConstraintResult::Contradiction;
                         }
                         // if did_work {
@@ -661,24 +658,20 @@ impl ConstraintSolver {
                     return ConstraintResult::DepthLimit(all_options);
                 }
             }
+
+            if rules.is_solved(&board) {
+                info!("{}: Final:", depth);
+                board.print();
+
+                return ConstraintResult::Solvable(board);
+            } else if !did_work {
+                info!("{}: Final:", depth);
+                board.print();
+
+                warn!("Could not solve board with depth limit = {}", max_depth);
+                return ConstraintResult::DepthLimit(all_options);
+            }
         } // end main loop
-
-        println!("{}: Final:", depth);
-        board.print();
-
-        if rules.is_solved(&board) {
-            println!("Done");
-            ConstraintResult::Solvable(board)
-        } else {
-            // print_options(&all_options);
-            // warn!(
-            //     "{}: Could not solve the board. Pretty sure it is ambiguous",
-            //     depth
-            // );
-            // ConstraintResult::Ambiguous
-            warn!("Could not solve board with depth limit = {}", max_depth);
-            ConstraintResult::DepthLimit(all_options)
-        }
     }
 
     fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
