@@ -462,7 +462,6 @@ impl PossibleDigits {
 
     fn print(&self) {
         let mut idx = 0;
-        println!();
         for _ in 0..Board::HEIGHT {
             for _ in 0..Board::WIDTH {
                 print!("{:?} ", self.digits[idx]);
@@ -616,7 +615,7 @@ impl ConstraintSolver {
                             board.board[idx] = None;
                             match num_solved {
                                 0 => {
-                                    did_work = all_options == new_options;
+                                    did_work |= all_options != new_options;
                                     if depth == 0 {
                                         if did_work && printing {
                                             dbg!(did_work);
