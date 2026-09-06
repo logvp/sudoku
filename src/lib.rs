@@ -404,12 +404,20 @@ fn make_move_from_solution(input: &Board, solution: &Board) -> Action {
     }
 }
 
+#[derive(Debug, PartialEq)]
+enum ConstraintResult {
+    DepthLimit,
+    Contradiction,
+    Solvable,
+    Ambiguous,
+}
+
 #[derive(Default)]
 pub struct ConstraintSolver {
     state: (),
 }
 impl ConstraintSolver {
-    fn solve(mut board: Board, rules: &Arbiter, depth: usize) -> Option<Board> {
+    fn solve(mut board: Board, rules: &Arbiter, depth: usize) -> (Option<Board>, ConstraintResult) {
         let printing = false;
         fn print_options(all_options: &[DigitSet; Board::WIDTH * Board::HEIGHT]) {
             let mut idx = 0;
@@ -425,7 +433,7 @@ impl ConstraintSolver {
 
         if !rules.check(&board) {
             warn!("Presented board is invalid");
-            return None;
+            return (None, ConstraintResult::Contradiction);
         }
 
         let mut all_options = board.board.map(|digit| match digit {
@@ -437,8 +445,8 @@ impl ConstraintSolver {
             }
         });
 
-        println!("{}: Initial:", depth);
-        board.print();
+        // println!("{}: Initial:", depth);
+        // board.print();
 
         let mut did_work = true;
         while did_work {
@@ -463,7 +471,7 @@ impl ConstraintSolver {
                             board.board[idx] = Some(digit);
                             if !rules.check_one(&board, idx) {
                                 // Last option left does not fit
-                                return None;
+                                return (None, ConstraintResult::Contradiction);
                             }
                             options.clear(digit);
                             did_work = true;
@@ -490,7 +498,7 @@ impl ConstraintSolver {
                             if options.count() == 0 {
                                 let (x, y) = board.xy(idx);
                                 warn!("No possible valid digits for ({}, {})", x, y);
-                                return None;
+                                return (None, ConstraintResult::Contradiction);
                             }
                         }
                     }
@@ -503,56 +511,62 @@ impl ConstraintSolver {
 
             // If the constraints made no progress do some guess and check to rule out possibilities
             let max_depth = 2;
-            if !did_work && !rules.is_solved(&board) && depth < max_depth {
-                debug!("Guessing and checking");
+            if !did_work && !rules.is_solved(&board) {
+                if depth < max_depth {
+                    debug!("Guessing and checking");
 
-                let unset_cells: Vec<_> = board
-                    .board
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, cell)| cell.is_none().then_some(i))
-                    .collect(); // TODO: reuse one allocation for this
+                    let unset_cells: Vec<_> = board
+                        .board
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(i, cell)| cell.is_none().then_some(i))
+                        .collect(); // TODO: reuse one allocation for this
 
-                for idx in unset_cells {
-                    let options = &mut all_options[idx];
-                    assert!(board.board[idx].is_none());
-                    assert!(options.count() > 1);
-                    // TODO: DigitSet does not have an iterator
-                    for digit in Digit::DIGITS {
-                        if options.get(digit) {
-                            board.board[idx] = Some(digit);
-                            if ConstraintSolver::solve(board.clone(), rules, depth + 1).is_none() {
-                                options.clear(digit);
-                                did_work = true;
+                    for idx in unset_cells {
+                        let options = &mut all_options[idx];
+                        assert!(board.board[idx].is_none());
+                        assert!(options.count() > 1);
+                        // TODO: DigitSet does not have an iterator
+                        for digit in Digit::DIGITS {
+                            if options.get(digit) {
+                                board.board[idx] = Some(digit);
+                                if ConstraintSolver::solve(board.clone(), rules, depth + 1).1
+                                    == ConstraintResult::Contradiction
+                                {
+                                    options.clear(digit);
+                                    did_work = true;
+                                }
                             }
                         }
+                        board.board[idx] = None;
+                        // TODO: benchmark best place for this check
+                        if options.count() == 0 {
+                            let (x, y) = board.xy(idx);
+                            warn!("{}: No possible valid digits for ({}, {})", depth, x, y);
+                            return (None, ConstraintResult::Contradiction);
+                        }
+                        if did_work {
+                            break;
+                        }
                     }
-                    board.board[idx] = None;
-                    // TODO: benchmark best place for this check
-                    if options.count() == 0 {
-                        let (x, y) = board.xy(idx);
-                        warn!("{}: No possible valid digits for ({}, {})", depth, x, y);
-                        return None;
-                    }
-                    if did_work {
-                        break;
-                    }
+                } else {
+                    return (None, ConstraintResult::DepthLimit);
                 }
             }
         } // end main loop
 
-        println!("{}: Final:", depth);
-        board.print();
+        // println!("{}: Final:", depth);
+        // board.print();
 
         if rules.is_solved(&board) {
-            Some(board)
+            (Some(board), ConstraintResult::Solvable)
         } else {
             // print_options(&all_options);
             warn!(
                 "{}: Could not solve the board. Pretty sure it is ambiguous",
                 depth
             );
-            None
+            (None, ConstraintResult::Ambiguous)
         }
     }
 
@@ -560,15 +574,17 @@ impl ConstraintSolver {
         if rules.is_solved(&board) {
             return BoardStatus::AlreadySolved;
         }
-        match Self::solve(board, rules, 0) {
-            Some(_) => BoardStatus::OneSolution,
-            None => BoardStatus::Unsolvable, // TODO: catchall
+        match Self::solve(board, rules, 0).1 {
+            ConstraintResult::Ambiguous => BoardStatus::MultipleSolutions,
+            ConstraintResult::Contradiction => BoardStatus::Unsolvable,
+            ConstraintResult::DepthLimit => todo!(),
+            ConstraintResult::Solvable => BoardStatus::OneSolution,
         }
     }
 }
 impl Solver for ConstraintSolver {
     fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action {
-        if let Some(solution) = Self::solve(board.clone(), rules, 0) {
+        if let (Some(solution), _) = Self::solve(board.clone(), rules, 0) {
             make_move_from_solution(board, &solution)
         } else {
             Action::Abort
