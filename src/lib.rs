@@ -476,6 +476,15 @@ impl PossibleDigits {
     }
 }
 
+enum PartialConstraintResult {
+    Complete(ConstraintResult),
+    Incomplete {
+        did_work: bool,
+        board: Board,
+        all_options: PossibleDigits,
+    },
+}
+
 #[derive(Debug)]
 enum ConstraintResult {
     DepthLimit(PossibleDigits),
@@ -489,6 +498,8 @@ pub struct ConstraintSolver {
     state: (),
 }
 impl ConstraintSolver {
+    const PRINTING: bool = false;
+
     fn solve_board(board: Board, rules: &Arbiter, validate_one_solution: bool) -> ConstraintResult {
         if !rules.check(&board) {
             warn!("Presented board is invalid");
@@ -506,67 +517,23 @@ impl ConstraintSolver {
         validate_one_solution: bool,
     ) -> ConstraintResult {
         let max_depth = 2;
-        let printing = false;
 
         // println!("{}: Initial:", depth);
         // board.print();
 
         loop {
-            let mut did_work = false;
+            let mut did_work;
             // Shake out the constrained cells
-            {
-                let unset_cells: Vec<_> = board
-                    .board
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, cell)| cell.is_none().then_some(i))
-                    .collect(); // TODO: reuse one allocation for this
-
-                for idx in unset_cells.iter().copied() {
-                    let options = all_options.get_index_mut(idx);
-                    match options.count() {
-                        0 => unreachable!(),
-                        1 => {
-                            let digit = options
-                                .first()
-                                .expect("count == 1 so set must be non-empty");
-                            board.board[idx] = Some(digit);
-                            if !rules.check_one(&board, idx) {
-                                // Last option left does not fit
-                                return ConstraintResult::Contradiction;
-                            }
-                            did_work = true;
-                            if printing {
-                                println!("Set {} at {}:", digit, idx);
-                                board.print();
-                            }
-                        }
-                        2.. => {
-                            assert!(board.board[idx].is_none());
-
-                            // TODO: DigitSet does not have an iterator
-                            for digit in Digit::DIGITS {
-                                if options.get(digit) {
-                                    board.board[idx] = Some(digit);
-                                    if !rules.check_one(&board, idx) {
-                                        options.clear(digit);
-                                        did_work = true;
-                                    }
-                                }
-                            }
-                            board.board[idx] = None;
-                            // TODO: benchmark best place for this check
-                            if options.count() == 0 {
-                                let (x, y) = board.xy(idx);
-                                // debug!("No possible valid digits for ({}, {})", x, y);
-                                return ConstraintResult::Contradiction;
-                            }
-                        }
-                    }
-                }
-                assert!(rules.check(&board));
-                if printing {
-                    all_options.print();
+            match Self::resolve_constraints(board, all_options, rules) {
+                PartialConstraintResult::Complete(result) => return result,
+                PartialConstraintResult::Incomplete {
+                    did_work: new_did_work,
+                    board: new_board,
+                    all_options: new_options,
+                } => {
+                    did_work = new_did_work;
+                    board = new_board;
+                    all_options = new_options;
                 }
             }
 
@@ -626,7 +593,7 @@ impl ConstraintSolver {
                                 0 => {
                                     did_work |= all_options != new_options;
                                     if depth == 0 {
-                                        if did_work && printing {
+                                        if did_work && Self::PRINTING {
                                             dbg!(did_work);
                                             println!("Old:");
                                             all_options.print();
@@ -660,18 +627,86 @@ impl ConstraintSolver {
             }
 
             if rules.is_solved(&board) {
-                info!("{}: Final:", depth);
-                board.print();
+                // info!("{}: Final:", depth);
+                // board.print();
 
                 return ConstraintResult::Solvable(board);
             } else if !did_work {
-                info!("{}: Final:", depth);
-                board.print();
+                // info!("{}: Final:", depth);
+                // board.print();
 
                 warn!("Could not solve board with depth limit = {}", max_depth);
                 return ConstraintResult::DepthLimit(all_options);
             }
         } // end main loop
+    }
+
+    fn resolve_constraints(
+        mut board: Board,
+        mut all_options: PossibleDigits,
+        rules: &Arbiter,
+    ) -> PartialConstraintResult {
+        let mut did_work = false;
+
+        let unset_cells: Vec<_> = board
+            .board
+            .iter()
+            .enumerate()
+            .filter_map(|(i, cell)| cell.is_none().then_some(i))
+            .collect(); // TODO: reuse one allocation for this
+
+        for idx in unset_cells.iter().copied() {
+            let options = all_options.get_index_mut(idx);
+            match options.count() {
+                0 => unreachable!(),
+                1 => {
+                    let digit = options
+                        .first()
+                        .expect("count == 1 so set must be non-empty");
+                    board.board[idx] = Some(digit);
+                    if !rules.check_one(&board, idx) {
+                        // Last option left does not fit
+                        return PartialConstraintResult::Complete(ConstraintResult::Contradiction);
+                    }
+                    if Self::PRINTING {
+                        println!("Set {} at {}:", digit, idx);
+                        board.print();
+                    }
+                    did_work = true;
+                }
+                2.. => {
+                    assert!(board.board[idx].is_none());
+
+                    // TODO: DigitSet does not have an iterator
+                    for digit in Digit::DIGITS {
+                        if options.get(digit) {
+                            board.board[idx] = Some(digit);
+                            if !rules.check_one(&board, idx) {
+                                options.clear(digit);
+                                did_work = true;
+                            }
+                        }
+                    }
+                    board.board[idx] = None;
+                    // TODO: benchmark best place for this check
+                    if options.count() == 0 {
+                        let (x, y) = board.xy(idx);
+                        // debug!("No possible valid digits for ({}, {})", x, y);
+                        return PartialConstraintResult::Complete(ConstraintResult::Contradiction);
+                    }
+                }
+            }
+        }
+        assert!(rules.check(&board));
+        if Self::PRINTING {
+            all_options.print();
+        }
+
+        PartialConstraintResult::Incomplete {
+            did_work,
+            board,
+            all_options,
+        }
     }
 
     fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
