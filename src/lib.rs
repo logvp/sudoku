@@ -648,14 +648,10 @@ impl ConstraintSolver {
         while did_work {
             did_work = false;
 
-            let unset_cells: Vec<_> = board
-                .board
-                .iter()
-                .enumerate()
-                .filter_map(|(i, cell)| cell.is_none().then_some(i))
-                .collect(); // TODO: reuse one allocation for this
-
-            for idx in unset_cells.iter().copied() {
+            for idx in 0..board.len() {
+                if board.board[idx].is_some() {
+                    continue;
+                }
                 let options = all_options.get_index_mut(idx);
                 match options.count() {
                     0 => unreachable!(),
