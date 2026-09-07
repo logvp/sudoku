@@ -479,7 +479,6 @@ impl PossibleDigits {
 enum PartialConstraintResult {
     Complete(ConstraintResult),
     Incomplete {
-        did_work: bool,
         board: Board,
         all_options: PossibleDigits,
     },
@@ -522,22 +521,20 @@ impl ConstraintSolver {
         // board.print();
 
         loop {
-            let mut did_work;
             // Shake out the constrained cells
             match Self::resolve_constraints(board, all_options, rules) {
                 PartialConstraintResult::Complete(result) => return result,
                 PartialConstraintResult::Incomplete {
-                    did_work: new_did_work,
                     board: new_board,
                     all_options: new_options,
                 } => {
-                    did_work = new_did_work;
                     board = new_board;
                     all_options = new_options;
                 }
             }
 
             // If the constraints made no progress do some guess and check to rule out possibilities
+            let mut did_work = false;
             if !did_work && !rules.is_solved(&board) {
                 if depth < max_depth {
                     // debug!("{}: Guessing and checking", depth);
@@ -646,67 +643,71 @@ impl ConstraintSolver {
         mut all_options: PossibleDigits,
         rules: &Arbiter,
     ) -> PartialConstraintResult {
-        let mut did_work = false;
+        let mut did_work = true;
 
-        let unset_cells: Vec<_> = board
-            .board
-            .iter()
-            .enumerate()
-            .filter_map(|(i, cell)| cell.is_none().then_some(i))
-            .collect(); // TODO: reuse one allocation for this
+        while did_work {
+            did_work = false;
 
-        for idx in unset_cells.iter().copied() {
-            let options = all_options.get_index_mut(idx);
-            match options.count() {
-                0 => unreachable!(),
-                1 => {
-                    let digit = options
-                        .first()
-                        .expect("count == 1 so set must be non-empty");
-                    board.board[idx] = Some(digit);
-                    if !rules.check_one(&board, idx) {
-                        // Last option left does not fit
-                        return PartialConstraintResult::Complete(ConstraintResult::Contradiction);
+            let unset_cells: Vec<_> = board
+                .board
+                .iter()
+                .enumerate()
+                .filter_map(|(i, cell)| cell.is_none().then_some(i))
+                .collect(); // TODO: reuse one allocation for this
+
+            for idx in unset_cells.iter().copied() {
+                let options = all_options.get_index_mut(idx);
+                match options.count() {
+                    0 => unreachable!(),
+                    1 => {
+                        let digit = options
+                            .first()
+                            .expect("count == 1 so set must be non-empty");
+                        board.board[idx] = Some(digit);
+                        if !rules.check_one(&board, idx) {
+                            // Last option left does not fit
+                            return PartialConstraintResult::Complete(
+                                ConstraintResult::Contradiction,
+                            );
+                        }
+                        if Self::PRINTING {
+                            println!("Set {} at {}:", digit, idx);
+                            board.print();
+                        }
+                        did_work = true;
                     }
-                    if Self::PRINTING {
-                        println!("Set {} at {}:", digit, idx);
-                        board.print();
-                    }
-                    did_work = true;
-                }
-                2.. => {
-                    assert!(board.board[idx].is_none());
+                    2.. => {
+                        assert!(board.board[idx].is_none());
 
-                    // TODO: DigitSet does not have an iterator
-                    for digit in Digit::DIGITS {
-                        if options.get(digit) {
-                            board.board[idx] = Some(digit);
-                            if !rules.check_one(&board, idx) {
-                                options.clear(digit);
-                                did_work = true;
+                        // TODO: DigitSet does not have an iterator
+                        for digit in Digit::DIGITS {
+                            if options.get(digit) {
+                                board.board[idx] = Some(digit);
+                                if !rules.check_one(&board, idx) {
+                                    options.clear(digit);
+                                    did_work = true;
+                                }
                             }
                         }
-                    }
-                    board.board[idx] = None;
-                    // TODO: benchmark best place for this check
-                    if options.count() == 0 {
-                        let (x, y) = board.xy(idx);
-                        // debug!("No possible valid digits for ({}, {})", x, y);
-                        return PartialConstraintResult::Complete(ConstraintResult::Contradiction);
+                        board.board[idx] = None;
+                        // TODO: benchmark best place for this check
+                        if options.count() == 0 {
+                            let (x, y) = board.xy(idx);
+                            // debug!("No possible valid digits for ({}, {})", x, y);
+                            return PartialConstraintResult::Complete(
+                                ConstraintResult::Contradiction,
+                            );
+                        }
                     }
                 }
             }
-        }
-        assert!(rules.check(&board));
-        if Self::PRINTING {
-            all_options.print();
+            assert!(rules.check(&board));
+            if Self::PRINTING {
+                all_options.print();
+            }
         }
 
-        PartialConstraintResult::Incomplete {
-            did_work,
-            board,
-            all_options,
-        }
+        PartialConstraintResult::Incomplete { board, all_options }
     }
 
     fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
