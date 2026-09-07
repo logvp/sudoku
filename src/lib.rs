@@ -643,8 +643,10 @@ impl ConstraintSolver {
         mut all_options: PossibleDigits,
         rules: &Arbiter,
     ) -> PartialConstraintResult {
-        'work_loop: loop {
-            let mut did_work = false;
+        let mut did_work = true;
+
+        while did_work {
+            did_work = false;
 
             let unset_cells: Vec<_> = board
                 .board
@@ -672,7 +674,7 @@ impl ConstraintSolver {
                             println!("Set {} at {}:", digit, idx);
                             board.print();
                         }
-                        continue 'work_loop;
+                        did_work = true;
                     }
                     2.. => {
                         assert!(board.board[idx].is_none());
@@ -702,10 +704,6 @@ impl ConstraintSolver {
             assert!(rules.check(&board));
             if Self::PRINTING {
                 all_options.print();
-            }
-
-            if !did_work {
-                break;
             }
         }
 
