@@ -643,10 +643,8 @@ impl ConstraintSolver {
         mut all_options: PossibleDigits,
         rules: &Arbiter,
     ) -> PartialConstraintResult {
-        let mut did_work = true;
-
-        while did_work {
-            did_work = false;
+        loop {
+            let mut did_work = false;
 
             for idx in 0..board.len() {
                 if board.board[idx].is_some() {
@@ -701,9 +699,10 @@ impl ConstraintSolver {
             if Self::PRINTING {
                 all_options.print();
             }
+            if !did_work {
+                return PartialConstraintResult::Incomplete { board, all_options };
+            }
         }
-
-        PartialConstraintResult::Incomplete { board, all_options }
     }
 
     fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
