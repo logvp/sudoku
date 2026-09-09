@@ -525,7 +525,7 @@ impl ConstraintSolver {
         // println!("{}: Initial:", depth);
         // board.print();
 
-        loop {
+        'work_loop: loop {
             // Shake out the constrained cells
             match Self::resolve_constraints(board, all_options, rules) {
                 PartialConstraintResult::Complete(result) => return result,
@@ -623,7 +623,7 @@ impl ConstraintSolver {
                             println!("Set {} at {}:", digit, idx);
                             board.print();
                         }
-                        did_work = true;
+                        continue 'work_loop;
                     }
                     _ => board.board[idx] = None,
                 }
