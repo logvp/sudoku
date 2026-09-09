@@ -498,6 +498,7 @@ pub struct ConstraintSolver {
 }
 impl ConstraintSolver {
     const PRINTING: bool = false;
+    const DEPTH_LIMIT: usize = 2;
 
     fn solve_board(board: Board, rules: &Arbiter, validate_one_solution: bool) -> ConstraintResult {
         if !rules.check(&board) {
@@ -506,17 +507,21 @@ impl ConstraintSolver {
         }
 
         let all_options = PossibleDigits::from(&board);
-        ConstraintSolver::solve(board, all_options, rules, 0, validate_one_solution)
+        ConstraintSolver::solve(
+            board,
+            all_options,
+            rules,
+            Self::DEPTH_LIMIT,
+            validate_one_solution,
+        )
     }
     fn solve(
         mut board: Board,
         mut all_options: PossibleDigits,
         rules: &Arbiter,
-        depth: usize,
+        remaining_depth: usize,
         validate_one_solution: bool,
     ) -> ConstraintResult {
-        let max_depth = 2;
-
         // println!("{}: Initial:", depth);
         // board.print();
 
@@ -534,11 +539,11 @@ impl ConstraintSolver {
             }
 
             if rules.is_solved(&board) {
-                // info!("{}: Final:", depth);
+                // info!("{}: Final:", remaining_depth);
                 // board.print();
 
                 return ConstraintResult::Solvable(board);
-            } else if depth >= max_depth {
+            } else if remaining_depth == 0 {
                 return ConstraintResult::DepthLimit(all_options);
             }
 
@@ -568,7 +573,7 @@ impl ConstraintSolver {
                             board.clone(),
                             all_options.clone(),
                             rules,
-                            depth + 1,
+                            remaining_depth - 1,
                             validate_one_solution,
                         ) {
                             ConstraintResult::Ambiguous => {
@@ -595,15 +600,6 @@ impl ConstraintSolver {
                 match num_solved {
                     0 => {
                         did_work |= all_options != new_options;
-                        if depth == 0 {
-                            if did_work && Self::PRINTING {
-                                dbg!(did_work);
-                                println!("Old:");
-                                all_options.print();
-                                println!("New:");
-                                new_options.print();
-                            }
-                        }
                         all_options = new_options;
                     }
                     1 => {
@@ -622,15 +618,18 @@ impl ConstraintSolver {
             }
 
             if rules.is_solved(&board) {
-                // info!("{}: Final:", depth);
+                // info!("{}: Final:", remaining_depth);
                 // board.print();
 
                 return ConstraintResult::Solvable(board);
             } else if !did_work {
-                // info!("{}: Final:", depth);
+                // info!("{}: Final:", remaining_depth);
                 // board.print();
 
-                warn!("Could not solve board with depth limit = {}", max_depth);
+                warn!(
+                    "Could not solve board with depth limit = {}",
+                    Self::DEPTH_LIMIT
+                );
                 return ConstraintResult::DepthLimit(all_options);
             }
         } // end main loop
@@ -641,7 +640,7 @@ impl ConstraintSolver {
         mut all_options: PossibleDigits,
         rules: &Arbiter,
     ) -> PartialConstraintResult {
-        'work_loop: loop {
+        loop {
             let mut did_work = false;
 
             for idx in 0..board.len() {
