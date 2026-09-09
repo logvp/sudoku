@@ -551,13 +551,12 @@ impl ConstraintSolver {
             let mut did_work = false;
             // debug!("{}: Guessing and checking", depth);
 
-            let mut unset_cells: Vec<_> = board
+            let unset_cells: Vec<_> = board
                 .board
                 .iter()
                 .enumerate()
                 .filter_map(|(i, cell)| cell.is_none().then_some(i))
                 .collect(); // TODO: reuse one allocation for this
-            unset_cells.sort_unstable_by_key(|i| all_options.get_index(*i).count());
 
             for idx in unset_cells {
                 let mut new_options = PossibleDigits::new_empty();
