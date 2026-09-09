@@ -668,7 +668,7 @@ impl ConstraintSolver {
                             println!("Set {} at {}:", digit, idx);
                             board.print();
                         }
-                        did_work = true;
+                        continue 'work_loop;
                     }
                     2.. => {
                         assert!(board.board[idx].is_none());
@@ -700,7 +700,7 @@ impl ConstraintSolver {
                                     println!("Set {} at {}:", digit, idx);
                                     board.print();
                                 }
-                                did_work = true;
+                                continue 'work_loop;
                             }
                             _ => board.board[idx] = None,
                         }
