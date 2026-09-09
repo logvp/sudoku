@@ -533,93 +533,91 @@ impl ConstraintSolver {
                 }
             }
 
+            if rules.is_solved(&board) {
+                // info!("{}: Final:", depth);
+                // board.print();
+
+                return ConstraintResult::Solvable(board);
+            } else if depth >= max_depth {
+                return ConstraintResult::DepthLimit(all_options);
+            }
+
             // If the constraints made no progress do some guess and check to rule out possibilities
             let mut did_work = false;
-            if !did_work && !rules.is_solved(&board) {
-                if depth < max_depth {
-                    // debug!("{}: Guessing and checking", depth);
+            // debug!("{}: Guessing and checking", depth);
 
-                    let unset_cells: Vec<_> = board
-                        .board
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(i, cell)| cell.is_none().then_some(i))
-                        .collect(); // TODO: reuse one allocation for this
+            let unset_cells: Vec<_> = board
+                .board
+                .iter()
+                .enumerate()
+                .filter_map(|(i, cell)| cell.is_none().then_some(i))
+                .collect(); // TODO: reuse one allocation for this
 
-                    for idx in unset_cells {
-                        {
-                            let mut new_options = PossibleDigits::new_empty();
-                            let mut solved_board = None;
-                            let mut num_solved = 0usize;
-                            let options = all_options.get_index(idx);
-                            assert!(board.board[idx].is_none());
-                            assert!(options.count() > 0);
-                            // TODO: DigitSet does not have an iterator
-                            for digit in Digit::DIGITS {
-                                if options.get(digit) {
-                                    board.board[idx] = Some(digit);
-                                    match ConstraintSolver::solve(
-                                        board.clone(),
-                                        all_options.clone(),
-                                        rules,
-                                        depth + 1,
-                                        validate_one_solution,
-                                    ) {
-                                        ConstraintResult::Ambiguous => {
-                                            // If the board is truly unsolvable with this digit set then we can rule it out
-                                            ()
-                                        }
-                                        ConstraintResult::Contradiction => (),
-                                        ConstraintResult::DepthLimit(possible) => {
-                                            new_options.union(&possible);
-                                        }
-                                        ConstraintResult::Solvable(solved) => {
-                                            if validate_one_solution {
-                                                num_solved += 1;
-                                                new_options.union(&PossibleDigits::from(&solved));
-                                                solved_board = Some(solved);
-                                            } else {
-                                                return ConstraintResult::Solvable(solved);
-                                            }
-                                        }
-                                    }
+            for idx in unset_cells {
+                let mut new_options = PossibleDigits::new_empty();
+                let mut solved_board = None;
+                let mut num_solved = 0usize;
+                let options = all_options.get_index(idx);
+                assert!(board.board[idx].is_none());
+                assert!(options.count() > 0);
+                // TODO: DigitSet does not have an iterator
+                for digit in Digit::DIGITS {
+                    if options.get(digit) {
+                        board.board[idx] = Some(digit);
+                        match ConstraintSolver::solve(
+                            board.clone(),
+                            all_options.clone(),
+                            rules,
+                            depth + 1,
+                            validate_one_solution,
+                        ) {
+                            ConstraintResult::Ambiguous => {
+                                // If the board is truly unsolvable with this digit set then we can rule it out
+                                ()
+                            }
+                            ConstraintResult::Contradiction => (),
+                            ConstraintResult::DepthLimit(possible) => {
+                                new_options.union(&possible);
+                            }
+                            ConstraintResult::Solvable(solved) => {
+                                if validate_one_solution {
+                                    num_solved += 1;
+                                    new_options.union(&PossibleDigits::from(&solved));
+                                    solved_board = Some(solved);
+                                } else {
+                                    return ConstraintResult::Solvable(solved);
                                 }
                             }
-                            board.board[idx] = None;
-                            match num_solved {
-                                0 => {
-                                    did_work |= all_options != new_options;
-                                    if depth == 0 {
-                                        if did_work && Self::PRINTING {
-                                            dbg!(did_work);
-                                            println!("Old:");
-                                            all_options.print();
-                                            println!("New:");
-                                            new_options.print();
-                                        }
-                                    }
-                                    all_options = new_options;
-                                }
-                                1 => {
-                                    return ConstraintResult::Solvable(
-                                        solved_board.expect("Should be some if num_solved > 0"),
-                                    );
-                                }
-                                2.. => return ConstraintResult::Ambiguous,
-                            }
                         }
-                        // TODO: benchmark best place for this check
-                        if all_options.get_index(idx).count() == 0 {
-                            let (x, y) = board.xy(idx);
-                            // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
-                            return ConstraintResult::Contradiction;
-                        }
-                        // if did_work {
-                        //     break;
-                        // }
                     }
-                } else {
-                    return ConstraintResult::DepthLimit(all_options);
+                }
+                board.board[idx] = None;
+                match num_solved {
+                    0 => {
+                        did_work |= all_options != new_options;
+                        if depth == 0 {
+                            if did_work && Self::PRINTING {
+                                dbg!(did_work);
+                                println!("Old:");
+                                all_options.print();
+                                println!("New:");
+                                new_options.print();
+                            }
+                        }
+                        all_options = new_options;
+                    }
+                    1 => {
+                        return ConstraintResult::Solvable(
+                            solved_board.expect("Should be some if num_solved > 0"),
+                        );
+                    }
+                    2.. => return ConstraintResult::Ambiguous,
+                }
+                // TODO: benchmark best place for this check
+                if all_options.get_index(idx).count() == 0 {
+                    let (x, y) = board.xy(idx);
+                    // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
+                    return ConstraintResult::Contradiction;
                 }
             }
 
