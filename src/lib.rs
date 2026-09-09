@@ -683,14 +683,26 @@ impl ConstraintSolver {
                                 }
                             }
                         }
-                        board.board[idx] = None;
                         // TODO: benchmark best place for this check
-                        if options.count() == 0 {
-                            let (x, y) = board.xy(idx);
-                            // debug!("No possible valid digits for ({}, {})", x, y);
-                            return PartialConstraintResult::Complete(
-                                ConstraintResult::Contradiction,
-                            );
+                        match options.count() {
+                            0 => {
+                                let (x, y) = board.xy(idx);
+                                // debug!("No possible valid digits for ({}, {})", x, y);
+                                return PartialConstraintResult::Complete(
+                                    ConstraintResult::Contradiction,
+                                );
+                            }
+                            1 => {
+                                let digit = options.first().expect("Count is 1");
+                                board.board[idx] = Some(digit);
+
+                                if Self::PRINTING {
+                                    println!("Set {} at {}:", digit, idx);
+                                    board.print();
+                                }
+                                did_work = true;
+                            }
+                            _ => board.board[idx] = None,
                         }
                     }
                 }
