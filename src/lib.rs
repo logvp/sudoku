@@ -596,7 +596,6 @@ impl ConstraintSolver {
                         }
                     }
                 }
-                board.board[idx] = None;
                 match num_solved {
                     0 => {
                         did_work |= all_options != new_options;
@@ -610,10 +609,23 @@ impl ConstraintSolver {
                     2.. => return ConstraintResult::Ambiguous,
                 }
                 // TODO: benchmark best place for this check
-                if all_options.get_index(idx).count() == 0 {
-                    let (x, y) = board.xy(idx);
-                    // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
-                    return ConstraintResult::Contradiction;
+                match all_options.get_index(idx).count() {
+                    0 => {
+                        let (x, y) = board.xy(idx);
+                        // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
+                        return ConstraintResult::Contradiction;
+                    }
+                    1 => {
+                        let digit = all_options.get_index_mut(idx).first().expect("Count is 1");
+                        board.board[idx] = Some(digit);
+
+                        if Self::PRINTING {
+                            println!("Set {} at {}:", digit, idx);
+                            board.print();
+                        }
+                        did_work = true;
+                    }
+                    _ => board.board[idx] = None,
                 }
             }
 
