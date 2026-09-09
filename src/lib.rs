@@ -643,7 +643,7 @@ impl ConstraintSolver {
         mut all_options: PossibleDigits,
         rules: &Arbiter,
     ) -> PartialConstraintResult {
-        loop {
+        'work_loop: loop {
             let mut did_work = false;
 
             for idx in 0..board.len() {
