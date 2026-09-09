@@ -646,7 +646,6 @@ impl ConstraintSolver {
         'work_loop: loop {
             let mut did_work = false;
 
-            // Digit setting loop
             for idx in 0..board.len() {
                 if board.board[idx].is_some() {
                     continue;
@@ -671,20 +670,6 @@ impl ConstraintSolver {
                         }
                         did_work = true;
                     }
-                    2.. => {
-                        // to be handled in the next loop
-                    }
-                }
-            }
-            // Resolve constraints
-            for idx in 0..board.len() {
-                if board.board[idx].is_some() {
-                    continue;
-                }
-                let options = all_options.get_index_mut(idx);
-                match options.count() {
-                    0 => unreachable!(),
-                    1 => unreachable!(),
                     2.. => {
                         assert!(board.board[idx].is_none());
 
