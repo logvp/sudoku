@@ -788,7 +788,7 @@ pub struct BacktrackingSolver {
     solution: Option<Board>,
 }
 impl BacktrackingSolver {
-    fn solve(&mut self, mut board: Board, rules: &Arbiter) -> Option<Board> {
+    fn solve(&self, mut board: Board, rules: &Arbiter) -> Option<Board> {
         if !rules.check(&board) {
             error!("Board is unsolvable");
             return None;
@@ -1046,11 +1046,34 @@ pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
 }
 
 pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
-    let solver = DefaultSolver::default();
     let rules = rules.unwrap_or_else(standard_sudoku_rules);
     let arbiter = Arbiter::new(rules);
 
-    solver.verify_board(board, &arbiter)
+    let bsolver = BacktrackingSolver::default();
+    let a = bsolver.verify_board(board.clone(), &arbiter);
+
+    let csolver = ConstraintSolver::default();
+    let b = csolver.verify_board(board.clone(), &arbiter);
+
+    if a != b {
+        board.print();
+        println!("backtracking");
+        if let Some(board) = bsolver.solve(board.clone(), &arbiter) {
+            board.print();
+        } else {
+            println!("No solution");
+        }
+        println!("constraint");
+        if let ConstraintResult::Solvable(board) =
+            ConstraintSolver::solve_board(board.clone(), &arbiter, false)
+        {
+            board.print();
+        } else {
+            println!("No solution");
+        }
+        assert_eq!(a, b)
+    }
+    a
 }
 
 #[cfg(test)]
