@@ -21,11 +21,35 @@
 
 pub mod optimized;
 mod rules;
-use std::fmt::{Debug, Display};
+use std::{
+    cell::Cell,
+    fmt::{Debug, Display},
+};
 
 use log::{debug, error, info, trace, warn};
 
 pub use rules::*;
+
+struct Counter {
+    name: &'static str,
+    data: Cell<usize>,
+}
+impl Counter {
+    fn new(name: &'static str) -> Self {
+        Self {
+            name,
+            data: Cell::new(0),
+        }
+    }
+    fn inc(&self) {
+        self.data.update(|n| n + 1);
+    }
+}
+impl Drop for Counter {
+    fn drop(&mut self) {
+        println!("Counter {}: {}", self.name, self.data.get())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -894,11 +918,17 @@ impl Solver for BacktrackingSolver {
 
 pub type Rules = Vec<Box<dyn SudokuRule>>;
 pub struct Arbiter {
+    check_one_counter: Counter,
+    check_counter: Counter,
     rules: Rules,
 }
 impl Arbiter {
     pub fn new(rules: Rules) -> Self {
-        Self { rules }
+        Self {
+            rules,
+            check_counter: Counter::new("check_full"),
+            check_one_counter: Counter::new("check_one"),
+        }
     }
 
     pub fn step(&self, board: &mut Board, solver: &mut dyn Solver) -> UpdateResult {
@@ -942,6 +972,7 @@ impl Arbiter {
     }
 
     pub fn check(&self, board: &Board) -> bool {
+        self.check_counter.inc();
         for rule in &self.rules {
             if !rule.check(board) {
                 return false;
@@ -951,6 +982,7 @@ impl Arbiter {
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool {
+        self.check_one_counter.inc();
         for rule in &self.rules {
             if !rule.check_one(board, index) {
                 return false;
