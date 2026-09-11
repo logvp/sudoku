@@ -516,6 +516,12 @@ enum ConstraintResult {
     Ambiguous,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SolveType {
+    FindFirstSolution,
+    ValidateOneSolution,
+}
+
 #[derive(Default)]
 pub struct ConstraintSolver {
     state: (),
@@ -524,7 +530,11 @@ impl ConstraintSolver {
     const PRINTING: bool = false;
     const DEPTH_LIMIT: usize = 2;
 
-    fn solve_board(board: Board, rules: &Arbiter, validate_one_solution: bool) -> ConstraintResult {
+    fn solve_board(
+        board: Board,
+        rules: &Arbiter,
+        validate_one_solution: SolveType,
+    ) -> ConstraintResult {
         if !rules.check(&board) {
             warn!("Presented board is invalid");
             return ConstraintResult::Contradiction;
@@ -544,7 +554,7 @@ impl ConstraintSolver {
         mut all_options: PossibleDigits,
         rules: &Arbiter,
         remaining_depth: usize,
-        validate_one_solution: bool,
+        validate_one_solution: SolveType,
     ) -> ConstraintResult {
         // println!("{}: Initial:", depth);
         // board.print();
@@ -609,15 +619,16 @@ impl ConstraintSolver {
                             ConstraintResult::DepthLimit(possible) => {
                                 new_options.union(&possible);
                             }
-                            ConstraintResult::Solvable(solved) => {
-                                if validate_one_solution {
+                            ConstraintResult::Solvable(solved) => match validate_one_solution {
+                                SolveType::ValidateOneSolution => {
                                     num_solved += 1;
                                     new_options.union(&PossibleDigits::from(&solved));
                                     solved_board = Some(solved);
-                                } else {
+                                }
+                                SolveType::FindFirstSolution => {
                                     return ConstraintResult::Solvable(solved);
                                 }
-                            }
+                            },
                         }
                     }
                 }
@@ -755,7 +766,7 @@ impl ConstraintSolver {
         if rules.is_solved(&board) {
             return BoardStatus::AlreadySolved;
         }
-        match Self::solve_board(board, rules, true) {
+        match Self::solve_board(board, rules, SolveType::ValidateOneSolution) {
             ConstraintResult::Ambiguous => BoardStatus::MultipleSolutions,
             ConstraintResult::Contradiction => BoardStatus::Unsolvable,
             ConstraintResult::DepthLimit(_) => todo!(),
@@ -765,7 +776,7 @@ impl ConstraintSolver {
 }
 impl Solver for ConstraintSolver {
     fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action {
-        match Self::solve_board(board.clone(), rules, false) {
+        match Self::solve_board(board.clone(), rules, SolveType::FindFirstSolution) {
             ConstraintResult::Solvable(solution) => make_move_from_solution(board, &solution),
             ConstraintResult::Ambiguous => {
                 panic!("Solver should not return ambiguous when validate_one_solution = false")
@@ -1065,7 +1076,7 @@ pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
         }
         println!("constraint");
         if let ConstraintResult::Solvable(board) =
-            ConstraintSolver::solve_board(board.clone(), &arbiter, false)
+            ConstraintSolver::solve_board(board.clone(), &arbiter, SolveType::FindFirstSolution)
         {
             board.print();
         } else {
