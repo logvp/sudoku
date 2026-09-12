@@ -597,6 +597,7 @@ impl ConstraintSolver {
                 let mut new_options = PossibleDigits::new_empty();
                 let mut solved_board = None;
                 let mut num_solved = 0usize;
+                let mut reached_depth_limit = false;
                 let options = all_options.get_index(idx);
                 assert!(board.board[idx].is_none());
                 assert!(options.count() > 0);
@@ -612,11 +613,15 @@ impl ConstraintSolver {
                             validate_one_solution,
                         ) {
                             ConstraintResult::Ambiguous => {
-                                // If the board is truly unsolvable with this digit set then we can rule it out
-                                ()
+                                assert!(
+                                    !matches!(validate_one_solution, SolveType::FindFirstSolution),
+                                    "Cannot be ambiguous, should have taken the first solution"
+                                );
+                                return ConstraintResult::Ambiguous;
                             }
                             ConstraintResult::Contradiction => (),
                             ConstraintResult::DepthLimit(possible) => {
+                                reached_depth_limit = true;
                                 new_options.union(&possible);
                             }
                             ConstraintResult::Solvable(solved) => match validate_one_solution {
@@ -632,17 +637,21 @@ impl ConstraintSolver {
                         }
                     }
                 }
-                match num_solved {
-                    0 => {
-                        did_work |= all_options != new_options;
-                        all_options = new_options;
+                if num_solved == 0 || reached_depth_limit {
+                    did_work |= all_options != new_options;
+                    all_options = new_options;
+                } else {
+                    match num_solved {
+                        0 => {
+                            unreachable!()
+                        }
+                        1 => {
+                            return ConstraintResult::Solvable(
+                                solved_board.expect("Should be some if num_solved > 0"),
+                            );
+                        }
+                        2.. => return ConstraintResult::Ambiguous,
                     }
-                    1 => {
-                        return ConstraintResult::Solvable(
-                            solved_board.expect("Should be some if num_solved > 0"),
-                        );
-                    }
-                    2.. => return ConstraintResult::Ambiguous,
                 }
                 // TODO: benchmark best place for this check
                 match all_options.get_index(idx).count() {
