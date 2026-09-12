@@ -528,7 +528,7 @@ pub struct ConstraintSolver {
 }
 impl ConstraintSolver {
     const PRINTING: bool = false;
-    const DEPTH_LIMIT: usize = 2;
+    const DEPTH_LIMIT: usize = 5;
 
     fn solve_board(
         board: Board,
@@ -593,84 +593,93 @@ impl ConstraintSolver {
                 .collect(); // TODO: reuse one allocation for this
             unset_cells.sort_unstable_by_key(|i| all_options.get_index(*i).count());
 
-            for idx in unset_cells {
-                let mut new_options = PossibleDigits::new_empty();
-                let mut solved_board = None;
-                let mut num_solved = 0usize;
-                let mut reached_depth_limit = false;
-                let options = all_options.get_index(idx);
-                assert!(board.board[idx].is_none());
-                assert!(options.count() > 0);
-                // TODO: DigitSet does not have an iterator
-                for digit in Digit::DIGITS {
-                    if options.get(digit) {
-                        board.board[idx] = Some(digit);
-                        match ConstraintSolver::solve(
-                            board.clone(),
-                            all_options.clone(),
-                            rules,
-                            remaining_depth - 1,
-                            validate_one_solution,
-                        ) {
-                            ConstraintResult::Ambiguous => {
-                                assert!(
-                                    !matches!(validate_one_solution, SolveType::FindFirstSolution),
-                                    "Cannot be ambiguous, should have taken the first solution"
-                                );
-                                return ConstraintResult::Ambiguous;
-                            }
-                            ConstraintResult::Contradiction => (),
-                            ConstraintResult::DepthLimit(possible) => {
-                                reached_depth_limit = true;
-                                new_options.union(&possible);
-                            }
-                            ConstraintResult::Solvable(solved) => match validate_one_solution {
-                                SolveType::ValidateOneSolution => {
-                                    num_solved += 1;
-                                    new_options.union(&PossibleDigits::from(&solved));
-                                    solved_board = Some(solved);
+            // Search with less depth first. Only if that is unsuccessful, increase it
+            for search_depth in 0..remaining_depth {
+                for idx in unset_cells.iter().copied() {
+                    let mut new_options = PossibleDigits::new_empty();
+                    let mut solved_board = None;
+                    let mut num_solved = 0usize;
+                    let mut reached_depth_limit = false;
+                    let options = all_options.get_index(idx);
+                    assert!(board.board[idx].is_none());
+                    assert!(options.count() > 0);
+                    // TODO: DigitSet does not have an iterator
+                    for digit in Digit::DIGITS {
+                        if options.get(digit) {
+                            board.board[idx] = Some(digit);
+                            match ConstraintSolver::solve(
+                                board.clone(),
+                                all_options.clone(),
+                                rules,
+                                search_depth,
+                                validate_one_solution,
+                            ) {
+                                ConstraintResult::Ambiguous => {
+                                    assert!(
+                                        !matches!(
+                                            validate_one_solution,
+                                            SolveType::FindFirstSolution
+                                        ),
+                                        "Cannot be ambiguous, should have taken the first solution"
+                                    );
+                                    return ConstraintResult::Ambiguous;
                                 }
-                                SolveType::FindFirstSolution => {
-                                    return ConstraintResult::Solvable(solved);
+                                ConstraintResult::Contradiction => (),
+                                ConstraintResult::DepthLimit(possible) => {
+                                    reached_depth_limit = true;
+                                    new_options.union(&possible);
                                 }
-                            },
+                                ConstraintResult::Solvable(solved) => match validate_one_solution {
+                                    SolveType::ValidateOneSolution => {
+                                        num_solved += 1;
+                                        new_options.union(&PossibleDigits::from(&solved));
+                                        solved_board = Some(solved);
+                                    }
+                                    SolveType::FindFirstSolution => {
+                                        return ConstraintResult::Solvable(solved);
+                                    }
+                                },
+                            }
                         }
                     }
-                }
-                if num_solved == 0 || reached_depth_limit {
-                    did_work |= all_options != new_options;
-                    all_options = new_options;
-                } else {
-                    match num_solved {
+                    if num_solved == 0 || reached_depth_limit {
+                        did_work |= all_options != new_options;
+                        all_options = new_options;
+                    } else {
+                        match num_solved {
+                            0 => {
+                                unreachable!()
+                            }
+                            1 => {
+                                return ConstraintResult::Solvable(
+                                    solved_board.expect("Should be some if num_solved > 0"),
+                                );
+                            }
+                            2.. => return ConstraintResult::Ambiguous,
+                        }
+                    }
+                    // TODO: benchmark best place for this check
+                    match all_options.get_index(idx).count() {
                         0 => {
-                            unreachable!()
+                            let (x, y) = board.xy(idx);
+                            // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
+                            return ConstraintResult::Contradiction;
                         }
                         1 => {
-                            return ConstraintResult::Solvable(
-                                solved_board.expect("Should be some if num_solved > 0"),
-                            );
+                            let digit = all_options.get_index_mut(idx).first().expect("Count is 1");
+                            board.board[idx] = Some(digit);
+
+                            if Self::PRINTING {
+                                println!("Set {} at {}:", digit, idx);
+                                board.print();
+                            }
+                            continue 'work_loop;
                         }
-                        2.. => return ConstraintResult::Ambiguous,
+                        _ => board.board[idx] = None,
                     }
                 }
-                // TODO: benchmark best place for this check
-                match all_options.get_index(idx).count() {
-                    0 => {
-                        let (x, y) = board.xy(idx);
-                        // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
-                        return ConstraintResult::Contradiction;
-                    }
-                    1 => {
-                        let digit = all_options.get_index_mut(idx).first().expect("Count is 1");
-                        board.board[idx] = Some(digit);
-
-                        if Self::PRINTING {
-                            println!("Set {} at {}:", digit, idx);
-                            board.print();
-                        }
-                        continue 'work_loop;
-                    }
-                    _ => board.board[idx] = None,
+                if did_work {
+                    break;
                 }
             }
 
