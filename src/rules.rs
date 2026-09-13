@@ -137,10 +137,10 @@ impl SudokuRule for KnightsMove {
         let (x, y) = board.xy(index);
         if let Some(digit) = board.get(x, y) {
             for (d_x, d_y) in KNIGHT_OFFSETS {
-                let Ok(i) = usize::try_from(x as isize + d_x) else {
+                let Some(i) = x.checked_add_signed(d_x) else {
                     continue;
                 };
-                let Ok(j) = usize::try_from(y as isize + d_y) else {
+                let Some(j) = y.checked_add_signed(d_y) else {
                     continue;
                 };
                 if !board.in_bounds(i, j) {
