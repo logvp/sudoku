@@ -212,11 +212,11 @@ impl SudokuRule for ThermalSudoku {
 }
 
 pub fn standard_sudoku_rules() -> Rules {
-    let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
-    rules.push(Box::new(SudokuRow));
-    rules.push(Box::new(SudokuColumn));
-    rules.push(Box::new(SudokuBox));
-    rules
+    vec![
+        Box::new(SudokuRow),
+        Box::new(SudokuColumn),
+        Box::new(SudokuBox),
+    ]
 }
 
 #[cfg(test)]
