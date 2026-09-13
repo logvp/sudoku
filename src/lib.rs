@@ -22,34 +22,14 @@
 mod board;
 mod rules;
 mod solver;
-use std::{cell::Cell, fmt::Debug};
+mod util;
 
 use log::{error, info, trace, warn};
 
 pub use board::*;
 pub use rules::*;
 pub use solver::*;
-
-struct Counter {
-    name: &'static str,
-    data: Cell<usize>,
-}
-impl Counter {
-    fn new(name: &'static str) -> Self {
-        Self {
-            name,
-            data: Cell::new(0),
-        }
-    }
-    fn inc(&self) {
-        self.data.update(|n| n + 1);
-    }
-}
-impl Drop for Counter {
-    fn drop(&mut self) {
-        println!("Counter {}: {}", self.name, self.data.get())
-    }
-}
+pub use util::*;
 
 pub trait SudokuRule {
     fn check(&self, board: &Board) -> bool {
