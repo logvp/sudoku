@@ -8,15 +8,16 @@
 #![warn(clippy::complexity, clippy::perf, clippy::style)]
 #![warn(clippy::pedantic)]
 #![allow(
+    clippy::ignored_unit_patterns,
+    clippy::match_same_arms,
+    clippy::missing_errors_doc,
     clippy::missing_panics_doc,
-    clippy::wildcard_imports,
+    clippy::must_use_candidate,
+    clippy::needless_continue,
+    clippy::return_self_not_must_use,
     clippy::semicolon_if_nothing_returned,
     clippy::uninlined_format_args,
-    clippy::missing_errors_doc,
-    clippy::match_same_arms,
-    clippy::needless_continue,
-    clippy::ignored_unit_patterns,
-    clippy::must_use_candidate
+    clippy::wildcard_imports
 )]
 
 mod arbiter;
