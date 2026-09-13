@@ -31,19 +31,6 @@ pub use rules::*;
 pub use solver::*;
 pub use util::*;
 
-pub trait SudokuRule {
-    fn check(&self, board: &Board) -> bool {
-        for i in 0..board.len() {
-            if !self.check_one(board, i) {
-                return false;
-            }
-        }
-        true
-    }
-
-    fn check_one(&self, board: &Board, index: usize) -> bool;
-}
-
 pub trait Solver {
     fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action;
 }
@@ -126,14 +113,6 @@ impl Arbiter {
     pub fn is_solved(&self, board: &Board) -> bool {
         !board.has_gaps() && self.check(board)
     }
-}
-
-pub fn standard_sudoku_rules() -> Rules {
-    let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
-    rules.push(Box::new(SudokuRow));
-    rules.push(Box::new(SudokuColumn));
-    rules.push(Box::new(SudokuBox));
-    rules
 }
 
 #[cfg(test)]

@@ -1,4 +1,17 @@
-use super::{Board, DigitSet, SudokuRule};
+use crate::{Board, DigitSet, Rules};
+
+pub trait SudokuRule {
+    fn check(&self, board: &Board) -> bool {
+        for i in 0..board.len() {
+            if !self.check_one(board, i) {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn check_one(&self, board: &Board, index: usize) -> bool;
+}
 
 pub struct SudokuRow;
 impl SudokuRow {
@@ -196,6 +209,14 @@ impl SudokuRule for ThermalSudoku {
         }
         true
     }
+}
+
+pub fn standard_sudoku_rules() -> Rules {
+    let mut rules: Vec<Box<dyn SudokuRule>> = Vec::new();
+    rules.push(Box::new(SudokuRow));
+    rules.push(Box::new(SudokuColumn));
+    rules.push(Box::new(SudokuBox));
+    rules
 }
 
 #[cfg(test)]
