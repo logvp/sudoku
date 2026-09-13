@@ -527,7 +527,7 @@ pub struct ConstraintSolver {
     state: (),
 }
 impl ConstraintSolver {
-    const PRINTING: bool = false;
+    const PRINT_PROGRESS: bool = false;
     const DEPTH_LIMIT: usize = 5;
 
     fn solve_board(
@@ -556,9 +556,6 @@ impl ConstraintSolver {
         remaining_depth: usize,
         validate_one_solution: SolveType,
     ) -> ConstraintResult {
-        // println!("{}: Initial:", depth);
-        // board.print();
-
         'work_loop: loop {
             // Shake out the constrained cells
             match Self::resolve_constraints(board, all_options, rules) {
@@ -573,9 +570,10 @@ impl ConstraintSolver {
             }
 
             if rules.is_solved(&board) {
-                // info!("{}: Final:", remaining_depth);
-                // board.print();
-
+                if Self::PRINT_PROGRESS {
+                    info!("{}: Final:", remaining_depth);
+                    board.print();
+                }
                 return ConstraintResult::Solvable(board);
             } else if remaining_depth == 0 {
                 return ConstraintResult::DepthLimit(all_options);
@@ -583,7 +581,6 @@ impl ConstraintSolver {
 
             // If the constraints made no progress do some guess and check to rule out possibilities
             let mut did_work = false;
-            // debug!("{}: Guessing and checking", depth);
 
             let mut unset_cells: Vec<_> = board
                 .board
@@ -661,18 +658,11 @@ impl ConstraintSolver {
                     // TODO: benchmark best place for this check
                     match all_options.get_index(idx).count() {
                         0 => {
-                            let (x, y) = board.xy(idx);
-                            // debug!("{}: No possible valid digits for ({}, {})", depth, x, y);
                             return ConstraintResult::Contradiction;
                         }
                         1 => {
                             let digit = all_options.get_index_mut(idx).first().expect("Count is 1");
                             board.board[idx] = Some(digit);
-
-                            if Self::PRINTING {
-                                println!("Set {} at {}:", digit, idx);
-                                board.print();
-                            }
                             continue 'work_loop;
                         }
                         _ => board.board[idx] = None,
@@ -684,18 +674,16 @@ impl ConstraintSolver {
             }
 
             if rules.is_solved(&board) {
-                // info!("{}: Final:", remaining_depth);
-                // board.print();
-
+                if Self::PRINT_PROGRESS {
+                    info!("{}: Final:", remaining_depth);
+                    board.print();
+                }
                 return ConstraintResult::Solvable(board);
             } else if !did_work {
-                // info!("{}: Final:", remaining_depth);
-                // board.print();
-
-                warn!(
-                    "Could not solve board with depth limit = {}",
-                    Self::DEPTH_LIMIT
-                );
+                if Self::PRINT_PROGRESS {
+                    info!("{}: Final:", remaining_depth);
+                    board.print();
+                }
                 return ConstraintResult::DepthLimit(all_options);
             }
         } // end main loop
@@ -727,10 +715,6 @@ impl ConstraintSolver {
                                 ConstraintResult::Contradiction,
                             );
                         }
-                        if Self::PRINTING {
-                            println!("Set {} at {}:", digit, idx);
-                            board.print();
-                        }
                         did_work = true;
                     }
                     2.. => {
@@ -749,8 +733,6 @@ impl ConstraintSolver {
                         // TODO: benchmark best place for this check
                         match options.count() {
                             0 => {
-                                let (x, y) = board.xy(idx);
-                                // debug!("No possible valid digits for ({}, {})", x, y);
                                 return PartialConstraintResult::Complete(
                                     ConstraintResult::Contradiction,
                                 );
@@ -758,11 +740,6 @@ impl ConstraintSolver {
                             1 => {
                                 let digit = options.first().expect("Count is 1");
                                 board.board[idx] = Some(digit);
-
-                                if Self::PRINTING {
-                                    println!("Set {} at {}:", digit, idx);
-                                    board.print();
-                                }
                                 did_work = true;
                             }
                             _ => board.board[idx] = None,
@@ -771,9 +748,6 @@ impl ConstraintSolver {
                 }
             }
             assert!(rules.check(&board));
-            if Self::PRINTING {
-                all_options.print();
-            }
             if !did_work {
                 return PartialConstraintResult::Incomplete { board, all_options };
             }
