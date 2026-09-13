@@ -81,7 +81,7 @@ enum SolveType {
 
 #[derive(Default)]
 pub struct ConstraintSolver {
-    state: (),
+    _state: (),
 }
 impl ConstraintSolver {
     const PRINT_PROGRESS: bool = false;
