@@ -1,11 +1,11 @@
 use sudoku::{Board, ThermalSudoku, solve, standard_sudoku_rules};
 
+// CtC: https://www.youtube.com/watch?v=BzWeEtdUb70
 fn main() {
     colog::basic_builder()
         .filter_level(log::LevelFilter::Debug)
         .init();
 
-    #[rustfmt::skip]
     let board: Board = Board::default();
 
     let mut rules = standard_sudoku_rules();
