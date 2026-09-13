@@ -1,8 +1,7 @@
 use log::{error, info, warn};
 
 use crate::{
-    Action, Arbiter, Board, BoardStatus, Digit, DigitSet, Rules, Solver, UpdateResult,
-    make_move_from_solution,
+    Action, Arbiter, Board, BoardStatus, Digit, DigitSet, Solver, make_move_from_solution,
 };
 
 #[derive(Debug, PartialEq, Clone)]
