@@ -21,10 +21,9 @@ impl SudokuRow {
             if let Some(digit) = board.get(i, y) {
                 if set.get(digit) {
                     return false;
-                } else {
-                    set.set(digit);
                 }
-            };
+                set.set(digit);
+            }
         }
         true
     }
@@ -60,10 +59,9 @@ impl SudokuColumn {
             if let Some(digit) = board.get(x, j) {
                 if set.get(digit) {
                     return false;
-                } else {
-                    set.set(digit);
                 }
-            };
+                set.set(digit);
+            }
         }
         true
     }
@@ -114,10 +112,9 @@ impl SudokuRule for SudokuBox {
                 if let Some(digit) = board.get(i, j) {
                     if set.get(digit) {
                         return false;
-                    } else {
-                        set.set(digit);
                     }
-                };
+                    set.set(digit);
+                }
             }
         }
         true
@@ -167,7 +164,7 @@ impl ThermalSudoku {
     pub fn new(thermometers: Vec<Line>) -> Self {
         let mut lookup = std::array::from_fn(|_| Vec::new());
         for (thermometer_id, thermometer) in thermometers.iter().enumerate() {
-            for idx in thermometer.iter() {
+            for idx in thermometer {
                 lookup[*idx].push(thermometer_id);
             }
         }
@@ -202,7 +199,7 @@ impl SudokuRule for ThermalSudoku {
     }
 
     fn check(&self, board: &Board) -> bool {
-        for thermometer in self.thermometers.iter() {
+        for thermometer in &self.thermometers {
             if !Self::check_thermometer(thermometer, board) {
                 return false;
             }

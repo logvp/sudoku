@@ -16,17 +16,14 @@ impl PossibleDigits {
     }
 
     fn from(board: &Board) -> Self {
-        let digits = board.board.map(|digit| match digit {
-            Some(digit) => {
-                let mut set = DigitSet::new();
-                set.set(digit);
-                set
-            }
-            None => {
-                let mut set = DigitSet::new();
-                set.invert();
-                set
-            }
+        let digits = board.board.map(|digit| if let Some(digit) = digit {
+            let mut set = DigitSet::new();
+            set.set(digit);
+            set
+        } else {
+            let mut set = DigitSet::new();
+            set.invert();
+            set
         });
         Self { digits }
     }

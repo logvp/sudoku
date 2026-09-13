@@ -90,10 +90,9 @@ impl BacktrackingSolver {
                     num_solutions += 1;
                     if num_solutions > 1 {
                         return BoardStatus::MultipleSolutions;
-                    } else {
-                        must_backtrack = true;
-                        continue;
                     }
+                    must_backtrack = true;
+                    continue;
                 };
                 stack.push(next_open);
                 board.board[next_open] = Some(Digit::_1);

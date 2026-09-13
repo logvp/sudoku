@@ -31,9 +31,9 @@ impl TryFrom<u32> for Digit {
         }
     }
 }
-impl Into<u32> for Digit {
-    fn into(self) -> u32 {
-        match self {
+impl From<Digit> for u32 {
+    fn from(val: Digit) -> Self {
+        match val {
             Digit::_1 => 1,
             Digit::_2 => 2,
             Digit::_3 => 3,
@@ -129,7 +129,7 @@ impl DigitSet {
         self.storage[digit as usize]
     }
     pub fn invert(&mut self) {
-        for x in self.storage.iter_mut() {
+        for x in &mut self.storage {
             *x = !*x;
         }
     }
@@ -143,12 +143,7 @@ impl DigitSet {
         count
     }
     pub fn first(&self) -> Option<Digit> {
-        for digit in Digit::DIGITS {
-            if self.get(digit) {
-                return Some(digit);
-            }
-        }
-        None
+        Digit::DIGITS.into_iter().find(|&digit| self.get(digit))
     }
     pub fn union(&mut self, other: &Self) {
         // TODO: Can't iterate over DigitSet
