@@ -730,7 +730,6 @@ impl ConstraintSolver {
                                 }
                             }
                         }
-                        // TODO: benchmark best place for this check
                         match options.count() {
                             0 => {
                                 return PartialConstraintResult::Complete(
