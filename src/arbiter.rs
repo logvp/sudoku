@@ -1,6 +1,18 @@
 use log::{error, info, trace};
 
-use crate::{Action, Board, Counter, DigitPos, Solver, SudokuRule, UpdateResult};
+use crate::{Action, Board, Counter, DigitPos, Solver, SudokuRule};
+
+pub enum UpdateResult {
+    Ok,
+    IllegalMove,
+    Done,
+    Aborted,
+}
+impl UpdateResult {
+    pub fn is_ok(&self) -> bool {
+        matches!(self, UpdateResult::Ok | UpdateResult::Done)
+    }
+}
 
 pub type Rules = Vec<Box<dyn SudokuRule>>;
 pub struct Arbiter {

@@ -31,10 +31,6 @@ pub use rules::*;
 pub use solver::*;
 pub use util::*;
 
-pub trait Solver {
-    fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

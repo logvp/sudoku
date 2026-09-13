@@ -1,7 +1,7 @@
 use log::debug;
 
 use crate::{
-    Action, Arbiter, Board, BoardStatus, ConstraintSolver, DigitPos, Rules, Solver, UpdateResult,
+    Action, Arbiter, Board, ConstraintSolver, DigitPos, Rules, Solver, UpdateResult,
     standard_sudoku_rules,
 };
 
@@ -59,6 +59,14 @@ pub fn solve_with(
         }
     }
     Ok(board)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BoardStatus {
+    Unsolvable,
+    AlreadySolved,
+    OneSolution,
+    MultipleSolutions,
 }
 
 type DefaultSolver = ConstraintSolver;

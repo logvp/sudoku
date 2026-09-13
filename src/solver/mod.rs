@@ -8,7 +8,11 @@ pub use constraint::*;
 pub use human::*;
 pub use util::*;
 
-use crate::Digit;
+use crate::{Arbiter, Board, Digit};
+
+pub trait Solver {
+    fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action;
+}
 
 pub struct DigitPos {
     pub digit: Digit,
@@ -19,24 +23,4 @@ pub enum Action {
     Set(Vec<DigitPos>),
     AlreadySolved,
     Abort,
-}
-
-pub enum UpdateResult {
-    Ok,
-    IllegalMove,
-    Done,
-    Aborted,
-}
-impl UpdateResult {
-    pub fn is_ok(&self) -> bool {
-        matches!(self, UpdateResult::Ok | UpdateResult::Done)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum BoardStatus {
-    Unsolvable,
-    AlreadySolved,
-    OneSolution,
-    MultipleSolutions,
 }
