@@ -7,7 +7,7 @@ pub struct BacktrackingSolver {
     solution: Option<Board>,
 }
 impl BacktrackingSolver {
-    fn solve(&mut self, mut board: Board, rules: &Arbiter) -> Option<Board> {
+    fn solve(&self, mut board: Board, rules: &Arbiter) -> Option<Board> {
         if !rules.check(&board) {
             error!("Board is unsolvable");
             return None;
