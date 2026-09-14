@@ -1,6 +1,7 @@
-use crate::{Board, DigitSet, Rules};
+use crate::{Board, DigitSet};
 
-pub trait SudokuRule {
+// TODO: this trait isn't really useful anymore
+trait SudokuRule {
     fn check(&self, board: &Board) -> bool {
         for i in 0..board.len() {
             if !self.check_one(board, i) {
@@ -11,6 +12,65 @@ pub trait SudokuRule {
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool;
+}
+
+#[derive(Default)]
+pub struct Rules {
+    pub rows: Option<SudokuRow>,
+    pub cols: Option<SudokuColumn>,
+    pub boxes: Option<SudokuBox>,
+    pub knight: Option<KnightsMove>,
+    pub thermal: Option<ThermalSudoku>,
+}
+impl Rules {
+    pub fn check(&self, board: &Board) -> bool {
+        self.rows.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self.cols.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self.boxes.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self.knight.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self
+                .thermal
+                .as_ref()
+                .map(|x| x.check(board))
+                .unwrap_or(true)
+    }
+
+    pub fn check_one(&self, board: &Board, index: usize) -> bool {
+        self.rows
+            .as_ref()
+            .map(|x| x.check_one(board, index))
+            .unwrap_or(true)
+            && self
+                .cols
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+            && self
+                .boxes
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+            && self
+                .knight
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+            && self
+                .thermal
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+    }
+
+    pub fn standard_sudoku_rules() -> Self {
+        Self {
+            rows: Some(SudokuRow),
+            cols: Some(SudokuColumn),
+            boxes: Some(SudokuBox),
+            knight: None,
+            thermal: None,
+        }
+    }
 }
 
 pub struct SudokuRow;
@@ -206,14 +266,6 @@ impl SudokuRule for ThermalSudoku {
         }
         true
     }
-}
-
-pub fn standard_sudoku_rules() -> Rules {
-    vec![
-        Box::new(SudokuRow),
-        Box::new(SudokuColumn),
-        Box::new(SudokuBox),
-    ]
 }
 
 #[cfg(test)]

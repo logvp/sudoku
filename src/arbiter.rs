@@ -1,6 +1,6 @@
 use log::{error, info, trace};
 
-use crate::{Action, Board, Counter, DigitPos, Solver, SudokuRule};
+use crate::{Action, Board, Counter, DigitPos, Rules, Solver};
 
 pub enum UpdateResult {
     Ok,
@@ -14,7 +14,6 @@ impl UpdateResult {
     }
 }
 
-pub type Rules = Vec<Box<dyn SudokuRule>>;
 pub struct Arbiter {
     check_one_counter: Counter,
     check_counter: Counter,
@@ -71,22 +70,12 @@ impl Arbiter {
 
     pub fn check(&self, board: &Board) -> bool {
         self.check_counter.inc();
-        for rule in &self.rules {
-            if !rule.check(board) {
-                return false;
-            }
-        }
-        true
+        self.rules.check(board)
     }
 
     pub fn check_one(&self, board: &Board, index: usize) -> bool {
         self.check_one_counter.inc();
-        for rule in &self.rules {
-            if !rule.check_one(board, index) {
-                return false;
-            }
-        }
-        true
+        self.rules.check_one(board, index)
     }
 
     pub fn is_solved(&self, board: &Board) -> bool {

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use clap::{Parser, Subcommand};
 use log::{error, info, trace};
 
-use sudoku::{Board, BoardStatus, HumanSolver, Rules, standard_sudoku_rules};
+use sudoku::{Board, BoardStatus, HumanSolver, Rules};
 
 /// Sudoku solver
 #[derive(Parser, Debug)]
@@ -87,15 +87,19 @@ where
 }
 
 fn parse_rules(rules_str: &str) -> Option<Rules> {
-    let mut rules = Rules::new();
+    let mut rules = Rules::default();
     for line in rules_str.lines() {
         let word = line.trim();
         match word {
-            "standard" | "sudoku" => rules.extend(standard_sudoku_rules()),
-            "box" => rules.push(Box::new(sudoku::SudokuBox)),
-            "row" => rules.push(Box::new(sudoku::SudokuRow)),
-            "col" | "column" => rules.push(Box::new(sudoku::SudokuColumn)),
-            "knight" => rules.push(Box::new(sudoku::KnightsMove)),
+            "standard" | "sudoku" => {
+                rules.rows = Some(sudoku::SudokuRow);
+                rules.cols = Some(sudoku::SudokuColumn);
+                rules.boxes = Some(sudoku::SudokuBox);
+            }
+            "box" => rules.boxes = Some(sudoku::SudokuBox),
+            "row" => rules.rows = Some(sudoku::SudokuRow),
+            "col" | "column" => rules.cols = Some(sudoku::SudokuColumn),
+            "knight" => rules.knight = Some(sudoku::KnightsMove),
             _ => {
                 error!("Unknown sudoku rule: '{}'", word);
                 return None;
@@ -163,7 +167,7 @@ fn main() {
                 error!("Could not read board from {}", input.display());
                 return;
             };
-            let rules = rules.unwrap_or_else(standard_sudoku_rules);
+            let rules = rules.unwrap_or_else(Rules::standard_sudoku_rules);
             let mut solver = HumanSolver::default();
             let solved = sudoku::solve_with(board, rules, &mut solver);
             if let Ok(solved) = solved {
