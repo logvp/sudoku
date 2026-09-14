@@ -1,6 +1,8 @@
 use log::{debug, error};
 
-use crate::{Action, Arbiter, Board, BoardStatus, Digit, Solver, make_move_from_solution};
+use crate::{
+    Action, Arbiter, Board, BoardStatus, Digit, Solver, Verifier, make_move_from_solution,
+};
 
 #[derive(Default)]
 pub struct BacktrackingSolver {
@@ -57,7 +59,7 @@ impl BacktrackingSolver {
         None
     }
 
-    pub fn verify_board(&self, mut board: Board, rules: &Arbiter) -> BoardStatus {
+    fn verify_board(&self, mut board: Board, rules: &Arbiter) -> BoardStatus {
         if !rules.check(&board) {
             error!("Board is unsolvable");
             return BoardStatus::Unsolvable;
@@ -131,5 +133,10 @@ impl Solver for BacktrackingSolver {
         }
         let solution = self.solution.as_ref().unwrap();
         make_move_from_solution(board, solution)
+    }
+}
+impl Verifier for BacktrackingSolver {
+    fn verify(&mut self, board: &Board, rules: &Arbiter) -> BoardStatus {
+        self.verify_board(board.clone(), rules)
     }
 }

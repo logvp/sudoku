@@ -14,6 +14,10 @@ pub trait Solver {
     fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action;
 }
 
+pub trait Verifier {
+    fn verify(&mut self, board: &Board, rules: &Arbiter) -> BoardStatus;
+}
+
 pub struct DigitPos {
     pub digit: Digit,
     pub x: usize,

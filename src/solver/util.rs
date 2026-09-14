@@ -1,7 +1,7 @@
 use log::debug;
 
 use crate::{
-    Action, Arbiter, Board, ConstraintSolver, DigitPos, Rules, Solver, UpdateResult,
+    Action, Arbiter, Board, ConstraintSolver, DigitPos, Rules, Solver, UpdateResult, Verifier,
     standard_sudoku_rules,
 };
 
@@ -77,9 +77,9 @@ pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
 }
 
 pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
-    let solver = DefaultSolver::default();
+    let mut solver = DefaultSolver::default();
     let rules = rules.unwrap_or_else(standard_sudoku_rules);
     let arbiter = Arbiter::new(rules);
 
-    solver.verify_board(board, &arbiter)
+    solver.verify(&board, &arbiter)
 }

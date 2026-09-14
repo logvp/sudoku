@@ -1,7 +1,7 @@
 use log::{error, info, warn};
 
 use crate::{
-    Action, Arbiter, Board, BoardStatus, Digit, DigitSet, Solver, make_move_from_solution,
+    Action, Arbiter, Board, BoardStatus, Digit, DigitSet, Solver, Verifier, make_move_from_solution,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -308,19 +308,6 @@ impl ConstraintSolver {
             }
         }
     }
-
-    // TODO: turn this into a trait
-    pub fn verify_board(&self, board: Board, rules: &Arbiter) -> BoardStatus {
-        if rules.is_solved(&board) {
-            return BoardStatus::AlreadySolved;
-        }
-        match Self::solve_board(board, rules, SolveType::ValidateOneSolution) {
-            ConstraintResult::Ambiguous => BoardStatus::MultipleSolutions,
-            ConstraintResult::Contradiction => BoardStatus::Unsolvable,
-            ConstraintResult::DepthLimit(_) => todo!(),
-            ConstraintResult::Solvable(_) => BoardStatus::OneSolution,
-        }
-    }
 }
 impl Solver for ConstraintSolver {
     fn make_move(&mut self, board: &Board, rules: &Arbiter) -> Action {
@@ -338,6 +325,19 @@ impl Solver for ConstraintSolver {
                 choices.print();
                 Action::Abort
             }
+        }
+    }
+}
+impl Verifier for ConstraintSolver {
+    fn verify(&mut self, board: &Board, rules: &Arbiter) -> BoardStatus {
+        if rules.is_solved(board) {
+            return BoardStatus::AlreadySolved;
+        }
+        match Self::solve_board(board.clone(), rules, SolveType::ValidateOneSolution) {
+            ConstraintResult::Ambiguous => BoardStatus::MultipleSolutions,
+            ConstraintResult::Contradiction => BoardStatus::Unsolvable,
+            ConstraintResult::DepthLimit(_) => todo!(),
+            ConstraintResult::Solvable(_) => BoardStatus::OneSolution,
         }
     }
 }
