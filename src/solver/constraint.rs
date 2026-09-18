@@ -195,26 +195,22 @@ impl ConstraintSolver {
                             }
                         }
                     }
-                    if num_solved == 0 || reached_depth_limit {
-                        did_work |= all_options != new_options;
-                        all_options = new_options;
-                    } else {
-                        match num_solved {
-                            0 => {
-                                unreachable!()
-                            }
-                            1 => {
-                                return ConstraintResult::Solvable(
-                                    solved_board.expect("Should be some if num_solved > 0"),
-                                );
-                            }
-                            2.. => return ConstraintResult::Ambiguous,
+                    match (reached_depth_limit, num_solved) {
+                        (true, _) => {
+                            did_work |= all_options != new_options;
+                            all_options = new_options;
                         }
+                        (false, 0) => return ConstraintResult::Contradiction,
+                        (_, 1) => {
+                            return ConstraintResult::Solvable(
+                                solved_board.expect("Should be some if num_solved > 0"),
+                            );
+                        }
+                        (_, 2..) => return ConstraintResult::Ambiguous,
                     }
-                    // TODO: benchmark best place for this check
                     match all_options.get_index(idx).count() {
                         0 => {
-                            return ConstraintResult::Contradiction;
+                            unreachable!()
                         }
                         1 => {
                             let digit = all_options.get_index_mut(idx).first().expect("Count is 1");
