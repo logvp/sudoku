@@ -57,11 +57,8 @@ impl PossibleDigits {
 }
 
 enum PartialConstraintResult {
-    Complete(ConstraintResult),
-    Incomplete {
-        board: Board,
-        all_options: PossibleDigits,
-    },
+    Contradiction,
+    Ok,
 }
 
 #[derive(Debug)]
@@ -114,15 +111,9 @@ impl ConstraintSolver {
     ) -> ConstraintResult {
         'work_loop: loop {
             // Shake out the constrained cells
-            match Self::resolve_constraints(board, all_options, rules) {
-                PartialConstraintResult::Complete(result) => return result,
-                PartialConstraintResult::Incomplete {
-                    board: new_board,
-                    all_options: new_options,
-                } => {
-                    board = new_board;
-                    all_options = new_options;
-                }
+            match Self::resolve_constraints(&mut board, &mut all_options, rules) {
+                PartialConstraintResult::Contradiction => return ConstraintResult::Contradiction,
+                PartialConstraintResult::Ok => (),
             }
 
             if remaining_depth == 0 {
@@ -239,8 +230,8 @@ impl ConstraintSolver {
     }
 
     fn resolve_constraints(
-        mut board: Board,
-        mut all_options: PossibleDigits,
+        board: &mut Board,
+        all_options: &mut PossibleDigits,
         rules: &Arbiter,
     ) -> PartialConstraintResult {
         loop {
@@ -260,9 +251,7 @@ impl ConstraintSolver {
                         board.board[idx] = Some(digit);
                         if !rules.check_one(&board, idx) {
                             // Last option left does not fit
-                            return PartialConstraintResult::Complete(
-                                ConstraintResult::Contradiction,
-                            );
+                            return PartialConstraintResult::Contradiction;
                         }
                         did_work = true;
                     }
@@ -281,9 +270,7 @@ impl ConstraintSolver {
                         }
                         match options.count() {
                             0 => {
-                                return PartialConstraintResult::Complete(
-                                    ConstraintResult::Contradiction,
-                                );
+                                return PartialConstraintResult::Contradiction;
                             }
                             1 => {
                                 let digit = options.first().expect("Count is 1");
@@ -296,10 +283,8 @@ impl ConstraintSolver {
                 }
             }
             assert!(rules.check(&board));
-            if !board.has_gaps() {
-                return PartialConstraintResult::Complete(ConstraintResult::Solvable(board));
-            } else if !did_work {
-                return PartialConstraintResult::Incomplete { board, all_options };
+            if !did_work {
+                return PartialConstraintResult::Ok;
             }
         }
     }
