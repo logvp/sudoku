@@ -185,6 +185,9 @@ impl ConstraintSolver {
                                 ConstraintResult::Solvable(solved) => match validate_one_solution {
                                     SolveType::ValidateOneSolution => {
                                         num_solved += 1;
+                                        if num_solved > 1 {
+                                            return ConstraintResult::Ambiguous;
+                                        }
                                         new_options.union(&PossibleDigits::from(&solved));
                                         solved_board = Some(solved);
                                     }
@@ -202,7 +205,7 @@ impl ConstraintSolver {
                             all_options = new_options;
                         }
                         (false, 0) => return ConstraintResult::Contradiction,
-                        (_, 1) => {
+                        (false, 1) => {
                             return ConstraintResult::Solvable(
                                 solved_board.expect("Should be some if num_solved > 0"),
                             );
