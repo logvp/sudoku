@@ -116,6 +116,13 @@ impl ConstraintSolver {
                 PartialConstraintResult::Ok => (),
             }
 
+            if rules.is_solved(&board) {
+                if Self::PRINT_PROGRESS {
+                    info!("{}: Final:", remaining_depth);
+                    board.print();
+                }
+                return ConstraintResult::Solvable(board);
+            }
             if remaining_depth == 0 {
                 return ConstraintResult::DepthLimit(all_options);
             }
