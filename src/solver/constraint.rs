@@ -125,13 +125,7 @@ impl ConstraintSolver {
                 }
             }
 
-            if rules.is_solved(&board) {
-                if Self::PRINT_PROGRESS {
-                    info!("{}: Final:", remaining_depth);
-                    board.print();
-                }
-                return ConstraintResult::Solvable(board);
-            } else if remaining_depth == 0 {
+            if remaining_depth == 0 {
                 return ConstraintResult::DepthLimit(all_options);
             }
 
@@ -302,7 +296,9 @@ impl ConstraintSolver {
                 }
             }
             assert!(rules.check(&board));
-            if !did_work {
+            if !board.has_gaps() {
+                return PartialConstraintResult::Complete(ConstraintResult::Solvable(board));
+            } else if !did_work {
                 return PartialConstraintResult::Incomplete { board, all_options };
             }
         }
