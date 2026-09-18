@@ -196,6 +196,7 @@ impl ConstraintSolver {
                         }
                     }
                     match (reached_depth_limit, num_solved) {
+                        (_, 2..) => return ConstraintResult::Ambiguous,
                         (true, _) => {
                             did_work |= all_options != new_options;
                             all_options = new_options;
@@ -206,7 +207,6 @@ impl ConstraintSolver {
                                 solved_board.expect("Should be some if num_solved > 0"),
                             );
                         }
-                        (_, 2..) => return ConstraintResult::Ambiguous,
                     }
                     match all_options.get_index(idx).count() {
                         0 => {
