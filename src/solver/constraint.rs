@@ -271,7 +271,6 @@ impl ConstraintSolver {
                                 board.board[idx] = Some(digit);
                                 if !rules.check_one(&board, idx) {
                                     options.clear(digit);
-                                    did_work = true;
                                 }
                             }
                         }
