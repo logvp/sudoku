@@ -29,6 +29,9 @@ fn main() {
         ..RulesDescription::standard_sudoku_rules()
     };
 
+    let rules_string = serde_json::to_string_pretty(&rules).unwrap();
+    println!("Rules:\n{}", rules_string);
+
     if let Ok(soln) = solve(board, Some(rules.build())) {
         println!("Solved!");
         soln.print();

@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{Board, DigitSet};
 
 // TODO: this trait isn't really useful anymore
@@ -14,7 +16,7 @@ trait SudokuRule {
     fn check_one(&self, board: &Board, index: usize) -> bool;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct RulesDescription {
     pub rows: bool,
     pub cols: bool,
