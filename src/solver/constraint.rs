@@ -208,7 +208,7 @@ impl ConstraintSolver {
                             unreachable!()
                         }
                         1 => {
-                            let digit = all_options.get_index_mut(idx).first().expect("Count is 1");
+                            let digit = all_options.get_index(idx).first().expect("Count is 1");
                             board.board[idx] = Some(digit);
                             continue 'work_loop;
                         }
@@ -275,7 +275,6 @@ impl ConstraintSolver {
                                 }
                             }
                         }
-                        debug_assert_eq!(options.count(), count);
                         match count {
                             0 => {
                                 return PartialConstraintResult::Contradiction;
