@@ -1,4 +1,4 @@
-use sudoku::{Board, Rules, ThermalSudoku, solve};
+use sudoku::{Board, RulesDescription, solve};
 
 // CtC: https://www.youtube.com/watch?v=BzWeEtdUb70
 fn main() {
@@ -8,8 +8,8 @@ fn main() {
 
     let board: Board = Board::default();
 
-    let rules = Rules {
-        thermal: Some(ThermalSudoku::new(vec![
+    let rules = RulesDescription {
+        thermometers: vec![
             vec![36, 28],
             vec![37, 29, 21, 13],
             vec![38, 30, 22, 14, 6],
@@ -25,11 +25,11 @@ fn main() {
             vec![41, 49, 57, 65],
             vec![42, 50, 58, 66],
             vec![43, 51, 59],
-        ])),
-        ..Rules::standard_sudoku_rules()
+        ],
+        ..RulesDescription::standard_sudoku_rules()
     };
 
-    if let Ok(soln) = solve(board, Some(rules)) {
+    if let Ok(soln) = solve(board, Some(rules.build())) {
         println!("Solved!");
         soln.print();
     } else {
