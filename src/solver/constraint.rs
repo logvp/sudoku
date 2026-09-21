@@ -262,7 +262,7 @@ impl ConstraintSolver {
                         }
                         did_work = true;
                     }
-                    2.. => {
+                    mut count @ 2.. => {
                         assert!(board.board[idx].is_none());
 
                         // TODO: DigitSet does not have an iterator
@@ -271,10 +271,12 @@ impl ConstraintSolver {
                                 board.board[idx] = Some(digit);
                                 if !rules.check_one(&board, idx) {
                                     options.clear(digit);
+                                    count = count.strict_sub(1);
                                 }
                             }
                         }
-                        match options.count() {
+                        debug_assert_eq!(options.count(), count);
+                        match count {
                             0 => {
                                 return PartialConstraintResult::Contradiction;
                             }
