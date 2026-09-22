@@ -1,6 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-use crate::{Board, DigitSet};
+use crate::{Board, DigitSet, RulesDescription};
 
 // TODO: this trait isn't really useful anymore
 trait SudokuRule {
@@ -14,43 +12,6 @@ trait SudokuRule {
     }
 
     fn check_one(&self, board: &Board, index: usize) -> bool;
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct RulesDescription {
-    pub rows: bool,
-    pub cols: bool,
-    pub boxes: bool,
-    pub knight: bool,
-    pub thermometers: Vec<Line>,
-}
-impl RulesDescription {
-    pub fn standard_sudoku_rules() -> Self {
-        Self {
-            rows: true,
-            cols: true,
-            boxes: true,
-            knight: false,
-            thermometers: Vec::new(),
-        }
-    }
-
-    pub fn build(self) -> Rules {
-        let Self {
-            rows,
-            cols,
-            boxes,
-            knight,
-            thermometers,
-        } = self;
-        Rules {
-            rows: rows.then(Default::default),
-            cols: cols.then(Default::default),
-            boxes: boxes.then(Default::default),
-            knight: knight.then(Default::default),
-            thermal: (!thermometers.is_empty()).then(|| ThermalSudoku::new(thermometers)),
-        }
-    }
 }
 
 pub struct Rules {
@@ -101,7 +62,25 @@ impl Rules {
     }
 
     pub fn standard_sudoku_rules() -> Self {
-        RulesDescription::standard_sudoku_rules().build()
+        Self::from(RulesDescription::standard_sudoku_rules())
+    }
+
+    pub fn from(
+        RulesDescription {
+            rows,
+            cols,
+            boxes,
+            knight,
+            thermometers,
+        }: RulesDescription,
+    ) -> Self {
+        Self {
+            rows: rows.then(Default::default),
+            cols: cols.then(Default::default),
+            boxes: boxes.then(Default::default),
+            knight: knight.then(Default::default),
+            thermal: (!thermometers.is_empty()).then(|| ThermalSudoku::new(thermometers)),
+        }
     }
 }
 

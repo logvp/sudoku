@@ -22,12 +22,14 @@
 
 mod arbiter;
 mod board;
+mod description;
 mod rules;
 mod solver;
 mod util;
 
 pub use arbiter::*;
 pub use board::*;
+pub use description::*;
 pub use rules::*;
 pub use solver::*;
 pub use util::*;
