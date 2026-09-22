@@ -1,0 +1,5 @@
+rows = true
+cols = true
+boxes = true
+knight = false
+thermometers = []

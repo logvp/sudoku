@@ -87,7 +87,7 @@ where
 }
 
 fn parse_rules(rules_str: &str) -> Option<Rules> {
-    match serde_json::from_str::<RulesDescription>(rules_str) {
+    match toml::from_str::<RulesDescription>(rules_str) {
         Ok(rules) => Some(rules.build()),
         Err(e) => {
             error!("Error parsing rules: {}", e);
