@@ -82,6 +82,18 @@ impl Rules {
             thermal: (!thermometers.is_empty()).then(|| ThermalSudoku::new(thermometers)),
         }
     }
+
+    pub fn to_description(self) -> RulesDescription {
+        RulesDescription {
+            rows: self.rows.is_some(),
+            cols: self.cols.is_some(),
+            boxes: self.boxes.is_some(),
+            knight: self.knight.is_some(),
+            thermometers: self
+                .thermal
+                .map_or(Vec::new(), |thermal| thermal.thermometers),
+        }
+    }
 }
 
 #[derive(Debug, Default)]

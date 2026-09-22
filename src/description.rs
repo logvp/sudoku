@@ -15,9 +15,9 @@ impl GameDescription {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct BoardDescription {
-    width: usize,
-    height: usize,
-    digits: Vec<u32>,
+    pub width: usize,
+    pub height: usize,
+    pub digits: Vec<u32>,
 }
 impl BoardDescription {
     pub fn build(self) -> Result<Board, ()> {
