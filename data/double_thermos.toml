@@ -1,0 +1,28 @@
+# CtC: https://www.youtube.com/watch?v=BzWeEtdUb70
+[board]
+width = 9
+height = 9
+digits = []
+
+[rules]
+rows = true
+cols = true
+boxes = true
+knight = false
+thermometers = [
+    [36, 28],
+    [37, 29, 21, 13],
+    [38, 30, 22, 14, 6],
+    [39, 31, 23, 15],
+    [40, 32],
+    [41, 33, 25, 17],
+    [42, 34, 26],
+    [43, 35],
+    [37, 45],
+    [38, 46, 54],
+    [39, 47, 55, 63],
+    [40, 48],
+    [41, 49, 57, 65],
+    [42, 50, 58, 66],
+    [43, 51, 59]
+]
