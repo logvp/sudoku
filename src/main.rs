@@ -87,26 +87,13 @@ where
 }
 
 fn parse_rules(rules_str: &str) -> Option<Rules> {
-    let mut rules = RulesDescription::default();
-    for line in rules_str.lines() {
-        let word = line.trim();
-        match word {
-            "standard" | "sudoku" => {
-                rules.rows = true;
-                rules.cols = true;
-                rules.boxes = true;
-            }
-            "box" => rules.boxes = true,
-            "row" => rules.rows = true,
-            "col" | "column" => rules.cols = true,
-            "knight" => rules.knight = true,
-            _ => {
-                error!("Unknown sudoku rule: '{}'", word);
-                return None;
-            }
+    match serde_json::from_str::<RulesDescription>(rules_str) {
+        Ok(rules) => Some(rules.build()),
+        Err(e) => {
+            error!("Error parsing rules: {}", e);
+            None
         }
     }
-    Some(rules.build())
 }
 
 fn read_rules<P>(path: P) -> Option<Rules>
