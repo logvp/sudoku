@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Display};
 
+use crate::BoardDescription;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Digit {
@@ -275,6 +277,20 @@ impl Board {
                 }
             }
             println!();
+        }
+    }
+
+    pub fn to_description(self) -> BoardDescription {
+        BoardDescription {
+            width: Board::WIDTH,
+            height: Board::HEIGHT,
+            digits: self
+                .board
+                .map(|d| match d {
+                    Some(d) => u32::from(d),
+                    None => 0,
+                })
+                .to_vec(),
         }
     }
 }

@@ -2,7 +2,6 @@ use log::debug;
 
 use crate::{
     Action, Arbiter, Board, ConstraintSolver, DigitPos, Rules, Solver, UpdateResult, Verifier,
-    standard_sudoku_rules,
 };
 
 pub fn make_move_from_solution(input: &Board, solution: &Board) -> Action {
@@ -72,13 +71,13 @@ pub enum BoardStatus {
 type DefaultSolver = ConstraintSolver;
 pub fn solve(board: Board, rules: Option<Rules>) -> Result<Board, SolveError> {
     let mut solver = DefaultSolver::default();
-    let rules = rules.unwrap_or_else(standard_sudoku_rules);
+    let rules = rules.unwrap_or_else(Rules::standard_sudoku_rules);
     solve_with(board, rules, &mut solver)
 }
 
 pub fn verify(board: Board, rules: Option<Rules>) -> BoardStatus {
     let mut solver = DefaultSolver::default();
-    let rules = rules.unwrap_or_else(standard_sudoku_rules);
+    let rules = rules.unwrap_or_else(Rules::standard_sudoku_rules);
     let arbiter = Arbiter::new(rules);
 
     solver.verify(&board, &arbiter)

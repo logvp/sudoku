@@ -32,7 +32,7 @@ pub enum Action {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::standard_sudoku_rules;
+    use crate::Rules;
 
     fn test_solver_harness<T: Solver>(mut solver: T) {
         #[rustfmt::skip]
@@ -47,7 +47,7 @@ mod tests {
             1, 0, 2, 0, 0, 0, 5, 7, 9,
             0, 0, 0, 5, 0, 3, 0, 0, 0,
         ]);
-        let rules = Arbiter::new(standard_sudoku_rules());
+        let rules = Arbiter::new(Rules::standard_sudoku_rules());
         #[rustfmt::skip]
         let solution: Board = Board::make([
             8, 4, 1, 2, 5, 9, 7, 3, 6,

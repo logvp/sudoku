@@ -1,6 +1,7 @@
-use crate::{Board, DigitSet, Rules};
+use crate::{Board, DigitSet, RulesDescription};
 
-pub trait SudokuRule {
+// TODO: this trait isn't really useful anymore
+trait SudokuRule {
     fn check(&self, board: &Board) -> bool {
         for i in 0..board.len() {
             if !self.check_one(board, i) {
@@ -13,6 +14,89 @@ pub trait SudokuRule {
     fn check_one(&self, board: &Board, index: usize) -> bool;
 }
 
+pub struct Rules {
+    rows: Option<SudokuRow>,
+    cols: Option<SudokuColumn>,
+    boxes: Option<SudokuBox>,
+    knight: Option<KnightsMove>,
+    thermal: Option<ThermalSudoku>,
+}
+impl Rules {
+    pub fn check(&self, board: &Board) -> bool {
+        self.rows.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self.cols.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self.boxes.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self.knight.as_ref().map(|x| x.check(board)).unwrap_or(true)
+            && self
+                .thermal
+                .as_ref()
+                .map(|x| x.check(board))
+                .unwrap_or(true)
+    }
+
+    pub fn check_one(&self, board: &Board, index: usize) -> bool {
+        self.rows
+            .as_ref()
+            .map(|x| x.check_one(board, index))
+            .unwrap_or(true)
+            && self
+                .cols
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+            && self
+                .boxes
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+            && self
+                .knight
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+            && self
+                .thermal
+                .as_ref()
+                .map(|x| x.check_one(board, index))
+                .unwrap_or(true)
+    }
+
+    pub fn standard_sudoku_rules() -> Self {
+        Self::from(RulesDescription::standard_sudoku_rules())
+    }
+
+    pub fn from(
+        RulesDescription {
+            rows,
+            cols,
+            boxes,
+            knight,
+            thermometers,
+        }: RulesDescription,
+    ) -> Self {
+        Self {
+            rows: rows.then(Default::default),
+            cols: cols.then(Default::default),
+            boxes: boxes.then(Default::default),
+            knight: knight.then(Default::default),
+            thermal: (!thermometers.is_empty()).then(|| ThermalSudoku::new(thermometers)),
+        }
+    }
+
+    pub fn to_description(self) -> RulesDescription {
+        RulesDescription {
+            rows: self.rows.is_some(),
+            cols: self.cols.is_some(),
+            boxes: self.boxes.is_some(),
+            knight: self.knight.is_some(),
+            thermometers: self
+                .thermal
+                .map_or(Vec::new(), |thermal| thermal.thermometers),
+        }
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct SudokuRow;
 impl SudokuRow {
     fn check_row(&self, board: &Board, y: usize) -> bool {
@@ -51,6 +135,7 @@ impl SudokuRule for SudokuRow {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct SudokuColumn;
 impl SudokuColumn {
     fn check_column(&self, board: &Board, x: usize) -> bool {
@@ -89,6 +174,7 @@ impl SudokuRule for SudokuColumn {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct SudokuBox;
 impl SudokuRule for SudokuBox {
     fn check(&self, board: &Board) -> bool {
@@ -121,6 +207,7 @@ impl SudokuRule for SudokuBox {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct KnightsMove;
 impl SudokuRule for KnightsMove {
     fn check_one(&self, board: &Board, index: usize) -> bool {
@@ -158,11 +245,11 @@ impl SudokuRule for KnightsMove {
 pub type Line = Vec<usize>;
 pub struct ThermalSudoku {
     thermometers: Vec<Line>,
-    lookup: [Vec<usize>; Board::WIDTH * Board::HEIGHT], // board index -> list of thermometers
+    lookup: Vec<Vec<usize>>, // board index -> list of thermometers
 }
 impl ThermalSudoku {
-    pub fn new(thermometers: Vec<Line>) -> Self {
-        let mut lookup = std::array::from_fn(|_| Vec::new());
+    fn new(thermometers: Vec<Line>) -> Self {
+        let mut lookup = vec![Vec::new(); Board::WIDTH * Board::HEIGHT];
         for (thermometer_id, thermometer) in thermometers.iter().enumerate() {
             for idx in thermometer {
                 lookup[*idx].push(thermometer_id);
@@ -206,14 +293,6 @@ impl SudokuRule for ThermalSudoku {
         }
         true
     }
-}
-
-pub fn standard_sudoku_rules() -> Rules {
-    vec![
-        Box::new(SudokuRow),
-        Box::new(SudokuColumn),
-        Box::new(SudokuBox),
-    ]
 }
 
 #[cfg(test)]

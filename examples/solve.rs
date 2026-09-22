@@ -1,4 +1,4 @@
-use sudoku::{Arbiter, Board, ConstraintSolver, Digit, standard_sudoku_rules};
+use sudoku::{Arbiter, Board, ConstraintSolver, Digit, Rules};
 
 fn main() {
     colog::basic_builder()
@@ -26,7 +26,7 @@ fn main() {
         let digit = this_board.get(x, y).unwrap_or(Digit::_9);
         this_board.set(x, y, digit.shift());
 
-        let rules = Arbiter::new(standard_sudoku_rules());
+        let rules = Arbiter::new(Rules::standard_sudoku_rules());
         let mut solver = ConstraintSolver::default();
 
         loop {
